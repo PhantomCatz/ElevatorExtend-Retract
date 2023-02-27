@@ -13,6 +13,7 @@ import com.revrobotics.SparkMaxPIDController;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
+import com.ctre.phoenix.sensors.CANCoder;
 import com.ctre.phoenixpro.signals.InvertedValue;
 
 import edu.wpi.first.math.controller.PIDController;
@@ -36,6 +37,8 @@ public class CatzElevator {
 
     private static boolean elevatorSpoolDone = false;
     private static boolean elevatorPivotDone = false;
+
+    private static boolean elevatorPivotMalualMode = false;
 
     public static CANSparkMax elevatorSpoolMC;
 
@@ -86,7 +89,7 @@ public class CatzElevator {
     private final double ELEV_PIVOT_GEAR_RATIO  = ELEV_PIVOT_SPUR_GEAR / ELEV_PIVOT_PINION_GEAR;
 
     private final double ELEV_PIVOT_FINAL_RATIO   = ELEV_PIVOT_VERSA_FINAL_RATIO * ELEV_PIVOT_GEAR_RATIO;
-    private final double ELEV_PIV_CNTS_TO_DEGREES = 360.0/2048.0;//add gear ratio
+    private final double ELEV_PIV_CNTS_TO_DEGREES = 360.0 / 2048.0;//add gear ratio
 
     private final double ELEV_SPOOL_TOP_MAX_RANGE = 36.0;// TBD
     private final double ELEV_SPOOL_BOT_MAX_RANGE = 0.0;
@@ -99,55 +102,56 @@ public class CatzElevator {
     private double elevSpoolScoreMidPos = 5.0;
     private double elevSpoolScoreBotPos = 0.0;
 
-    private final double ELEV_PIVOT_SCORE_HIGH_POS  = 0.0;
-    private final double ELEV_PIVOT_SCORE_MID_POS   = 0.0;
-    private final double ELEV_PIVOT_SCORE_LOW_POS   = 0.0;
+    private final double ELEV_PIVOT_SCORE_HIGH_POS = 2023.0; //to be fixed
+    private final double ELEV_PIVOT_SCORE_MID_POS  = 2500.0; //to be fixed
+    private final double ELEV_PIVOT_SCORE_LOW_POS  = 2500.0; //to be fixed
 
     private double currentSpoolPos;
     private double elevCarriagePosInch;
 
-    private static double pivotTargetAngle = 0.0;
+    private static double pivotTargetAngle    = 0.0;
     private static double pivotCurrentAngleLT = 0.0;
-    //private static double pivotCurrentAngleRT;
+    // private static double pivotCurrentAngleRT;
 
     private double pivotDistanceToTarget = pivotTargetAngle - pivotCurrentAngleLT;
 
-    static public double PID_ELEVATOR_UP_EMPTY_KP   = 0.00; //needs to be fixed to certain value
-	static public double PID_ELEVATOR_UP_EMPTY_KI   = 0.00; //needs to be fixed to certain value
-	static public double PID_ELEVATOR_UP_EMPTY_KD   = 0.00; //needs to be fixed to certain value
+    static public double PID_ELEVATOR_UP_EMPTY_KP   = 1.25; // needs to be fixed to certain value
+    static public double PID_ELEVATOR_UP_EMPTY_KI   = 0.00; // needs to be fixed to certain value
+    static public double PID_ELEVATOR_UP_EMPTY_KD   = 0.00; // needs to be fixed to certain value
 
-    static public double PID_ELEVATOR_DOWN_EMPTY_KP = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_DOWN_EMPTY_KI = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_DOWN_EMPTY_KD = 0.00; //needs to be fixed to certain value
+    static public double PID_ELEVATOR_DOWN_EMPTY_KP = 1.25; // needs to be fixed to certain value
+    static public double PID_ELEVATOR_DOWN_EMPTY_KI = 0.00; // needs to be fixed to certain value
+    static public double PID_ELEVATOR_DOWN_EMPTY_KD = 0.00; // needs to be fixed to certain value
 
-    static public double PID_ELEVATOR_UP_CONE_KP    = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_UP_CONE_KI    = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_UP_CONE_KD    = 0.00; //needs to be fixed to certain value
+    static public double PID_ELEVATOR_UP_CONE_KP    = 1.25; // needs to be fixed to certain value
+    static public double PID_ELEVATOR_UP_CONE_KI    = 0.00; // needs to be fixed to certain value
+    static public double PID_ELEVATOR_UP_CONE_KD    = 0.00; // needs to be fixed to certain value
 
-    static public double PID_ELEVATOR_DOWN_CONE_KP  = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_DOWN_CONE_KI  = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_DOWN_CONE_KD  = 0.00; //needs to be fixed to certain value
+    static public double PID_ELEVATOR_DOWN_CONE_KP  = 1.25; // needs to be fixed to certain value
+    static public double PID_ELEVATOR_DOWN_CONE_KI  = 0.00; // needs to be fixed to certain value
+    static public double PID_ELEVATOR_DOWN_CONE_KD  = 0.00; // needs to be fixed to certain value
 
     private boolean indexingCone = false;
 
-    private int currentPivotPos;
+    private int currentPivotCmd = 2;//to be fixed
 
-    private final int ELEV_PIV_SCORE_LOW_POS  = 0;
-    private final int ELEV_PIV_SCORE_MID_POS  = 1;
-    private final int ELEV_PIV_SCORE_HIGH_POS = 2;
+    private final int ELEV_PIV_SCORE_LOW_CMD = 0;
+    private final int ELEV_PIV_SCORE_MID_CMD = 1;
+    private final int ELEV_PIV_SCORE_HIGH_CMD = 2;
 
     private double wheelOffset;
 
-    private DutyCycleEncoder magEnc;
+    private CANCoder pivotEnc;
     private DigitalInput MagEncPWMInput;
+    private final int ELEV_PIV_ENCODER_SEN_ID = 9;
+    public double testMaxPower;
 
 
-
-    public CatzElevator()
-    {
-        /*
+    
+    public CatzElevator() {
+        /************************************************************************************
          * spool
-         */
+         ************************************************************************************/
         elevatorSpoolMC = new CANSparkMax(ELEVATOR_SPOOL_MC_CAN_ID, MotorType.kBrushless);
         elevatorSpoolMC.restoreFactoryDefaults();
 
@@ -169,9 +173,9 @@ public class CatzElevator {
 
 
 
-        /*
+        /************************************************************************************
          * pivot
-         */
+         ************************************************************************************/
         elevPivotMtrLT = new WPI_TalonFX(ELEVATOR_PIVOT_LT_MC_ID);
         elevPivotMtrRT = new WPI_TalonFX(ELEVATOR_PIVOT_RT_MC_ID);
         
@@ -181,13 +185,47 @@ public class CatzElevator {
         elevPivotMtrRT.follow(elevPivotMtrLT);
         elevPivotMtrRT.setInverted(true);
 
-        pivotMtrCurrentLimit = new SupplyCurrentLimitConfiguration(ENABLE_CURRENT_LIMIT, ELEV_PIV_CURRENT_LIMIT, CURRENT_LIMIT_TRIGGER_AMPS, CURRENT_LIMIT_TIMEOUT_SECONDS);
+        pivotMtrCurrentLimit = new SupplyCurrentLimitConfiguration(ENABLE_CURRENT_LIMIT, ELEV_PIV_CURRENT_LIMIT,
+                CURRENT_LIMIT_TRIGGER_AMPS, CURRENT_LIMIT_TIMEOUT_SECONDS);
         elevPivotMtrLT.configSupplyCurrentLimit(pivotMtrCurrentLimit);
         elevPivotMtrRT.configSupplyCurrentLimit(pivotMtrCurrentLimit);
 
-        // MagEncPWMInput = new DigitalInput(encoderDIOChannel);
-        // magEnc = new DutyCycleEncoder(MagEncPWMInput);
-        // wheelOffset = 0.0;//TBD
+        pivotEnc = new CANCoder(ELEV_PIV_ENCODER_SEN_ID); // CANCoder
+        wheelOffset = 0.0;// TBD
+        //make these constants, they are for testing rn only
+        elevPivotMtrLT.configReverseSoftLimitThreshold(1990.0);
+       elevPivotMtrLT.configReverseSoftLimitEnable(true);
+
+       elevPivotMtrLT.configForwardSoftLimitThreshold(2600.0);
+       elevPivotMtrLT.configForwardSoftLimitEnable(true);
+
+        elevPivotMtrLT.config_kP(0, PID_ELEVATOR_UP_EMPTY_KP);
+       // elevPivotMtrRT.config_kP(0, PID_ELEVATOR_UP_EMPTY_KP);
+        elevPivotMtrLT.config_kI(0, PID_ELEVATOR_UP_EMPTY_KI);
+        //elevPivotMtrRT.config_kI(0, PID_ELEVATOR_UP_EMPTY_KI);
+        elevPivotMtrLT.config_kD(0, PID_ELEVATOR_UP_EMPTY_KD);
+        //elevPivotMtrRT.config_kD(0, PID_ELEVATOR_UP_EMPTY_KD);
+
+        elevPivotMtrLT.config_kP(1, PID_ELEVATOR_DOWN_EMPTY_KP);
+        //elevPivotMtrRT.config_kP(1, PID_ELEVATOR_DOWN_EMPTY_KP);
+        elevPivotMtrLT.config_kI(1, PID_ELEVATOR_DOWN_EMPTY_KI);
+        //elevPivotMtrRT.config_kI(1, PID_ELEVATOR_DOWN_EMPTY_KI);
+        elevPivotMtrLT.config_kD(1, PID_ELEVATOR_DOWN_EMPTY_KD);
+        //elevPivotMtrRT.config_kD(1, PID_ELEVATOR_DOWN_EMPTY_KD);
+
+        elevPivotMtrLT.config_kP(2, PID_ELEVATOR_UP_CONE_KP);
+        //elevPivotMtrRT.config_kP(2, PID_ELEVATOR_UP_CONE_KP);
+        elevPivotMtrLT.config_kI(2, PID_ELEVATOR_UP_CONE_KI);
+        //elevPivotMtrRT.config_kI(2, PID_ELEVATOR_UP_CONE_KI);
+        elevPivotMtrLT.config_kD(2, PID_ELEVATOR_UP_CONE_KD);
+        //elevPivotMtrRT.config_kD(2, PID_ELEVATOR_UP_CONE_KD);
+        
+        elevPivotMtrLT.config_kP(3, PID_ELEVATOR_DOWN_CONE_KP);
+        //elevPivotMtrRT.config_kP(3, PID_ELEVATOR_DOWN_CONE_KP);
+        elevPivotMtrLT.config_kI(3, PID_ELEVATOR_DOWN_CONE_KI);
+        //elevPivotMtrRT.config_kI(3, PID_ELEVATOR_DOWN_CONE_KI);
+        elevPivotMtrLT.config_kD(3, PID_ELEVATOR_DOWN_CONE_KD);
+        //elevPivotMtrRT.config_kD(3, PID_ELEVATOR_DOWN_CONE_KD);
 
         setBrakeMode();
     }
@@ -350,80 +388,88 @@ public class CatzElevator {
         return elevCarriagePosInch;
     }
 
-
-
     /************************************************************************************************************************************************
-    * 
-    * Elevator pivot code
-    * 
-    ************************************************************************************************************************************************/
-    public void lowScoringPosition()
-    {
-        if (indexingCone)
-        {
+     * 
+     * Elevator pivot code
+     *
+     ************************************************************************************************************************************************/
+    public void lowScoringPosition() {
+        elevatorPivotMalualMode = false;
+        pivotCurrentAngleLT = pivotEnc.getPosition();
+
+        if (indexingCone) {
             elevPivotMtrLT.selectProfileSlot(3, 0);
             // elevPivotMtrRT.selectProfileSlot(3, 0);
-        }
-        else
-        {
+            System.out.println("Low Scoring with cone");
+        } else {
             elevPivotMtrLT.selectProfileSlot(1, 0);
             // elevPivotMtrRT.selectProfileSlot(1, 0);
+            System.out.println("Low Scoring without cone");
         }
         elevPivotMtrLT.set(ControlMode.Position, ELEV_PIVOT_SCORE_LOW_POS);
         // elevPivotMtrRT.set(ControlMode.Position, ELEV_PIVOT_SCORE_LOW_POS);
-        currentPivotPos = 0;
+        currentPivotCmd = ELEV_PIV_SCORE_LOW_CMD;
     }
 
-    public void midScoringPosition()
-    {
-        if (indexingCone && ELEV_PIVOT_SCORE_HIGH_POS == currentPivotPos)
-        {
+    public void midScoringPosition() {
+        elevatorPivotMalualMode = false;
+        pivotCurrentAngleLT = pivotEnc.getPosition();
+
+        if (indexingCone && currentPivotCmd == ELEV_PIV_SCORE_HIGH_CMD) {
             elevPivotMtrLT.selectProfileSlot(3, 0);
             // elevPivotMtrRT.selectProfileSlot(3, 0);
-        }
-        else if (indexingCone && ELEV_PIVOT_SCORE_LOW_POS == currentPivotPos)
-        {
+            System.out.println("Mid Scoring with cone");
+        } else if (indexingCone && currentPivotCmd == ELEV_PIV_SCORE_LOW_CMD) {
             elevPivotMtrLT.selectProfileSlot(2, 0);
             // elevPivotMtrRT.selectProfileSlot(2, 0);
-        }
-        else if (currentPivotPos == ELEV_PIVOT_SCORE_HIGH_POS)
-        {
+            System.out.println("Mid Scoring with cone");
+        } else if (currentPivotCmd == ELEV_PIV_SCORE_HIGH_CMD) {
             elevPivotMtrLT.selectProfileSlot(1, 0);
             // elevPivotMtrRT.selectProfileSlot(1, 0);
-        }
-        else if (currentPivotPos == ELEV_PIVOT_SCORE_LOW_POS)
-        {
+            System.out.println("Mid Scoring without cone");
+        } else if (currentPivotCmd == ELEV_PIV_SCORE_LOW_CMD) {
             elevPivotMtrLT.selectProfileSlot(0, 0);
             // elevPivotMtrRT.selectProfileSlot(0, 0);
+            System.out.println("Mid Scoring without cone");
         }
         elevPivotMtrLT.set(ControlMode.Position, ELEV_PIVOT_SCORE_MID_POS);
         // elevPivotMtrRT.set(ControlMode.Position, ELEV_PIVOT_SCORE_MID_POS);
-        currentPivotPos = 1;
+        currentPivotCmd = ELEV_PIV_SCORE_MID_CMD;
     }
 
-    public void highScoringPosition()
-    {
-        if (indexingCone)
-        {
+    public void highScoringPosition() {
+        elevatorPivotMalualMode = false;
+        pivotCurrentAngleLT = pivotEnc.getPosition();
+
+        if (indexingCone) {
             elevPivotMtrLT.selectProfileSlot(2, 0);
             // elevPivotMtrRT.selectProfileSlot(2, 0);
-        }
-        else
-        {
+            System.out.println("High Scoring with cone");
+        } else {
             elevPivotMtrLT.selectProfileSlot(0, 0);
             // elevPivotMtrRT.selectProfileSlot(0, 0);
+            System.out.println("HI Scoring without cone");
+
         }
         elevPivotMtrLT.set(ControlMode.Position, ELEV_PIVOT_SCORE_HIGH_POS);
+        System.out.println("HI Scoring controlmode set");
+
         // elevPivotMtrRT.set(ControlMode.Position, ELEV_PIVOT_SCORE_HIGH_POS);
-        currentPivotPos = 2;
+        currentPivotCmd = ELEV_PIV_SCORE_HIGH_CMD;
     }
 
-    public void manualPivotControl(double power)
-    {
-        elevatorState = ELEV_STATE_IDLE;
-        elevPivotMtrLT.set(power);
+    public void manualPivotControl(double power) {
+        if(Math.abs(power) >= 0.0)
+        {
+            elevatorPivotMalualMode = true;
+        }
+        if(elevatorPivotMalualMode == true)
+        {
+            elevPivotMtrLT.set(power);
+        }
         // elevPivotMtrRT.set(power);
     }
+
 
 
     /*----------------------------------------------------------------------------------------------
@@ -443,5 +489,31 @@ public class CatzElevator {
     public void smartDashboardElevator_DEBUG()
     {
         
+    }
+
+    /*----------------------------------------------------------------------------------------------
+    * 
+    *  pivot testing, left while merging. clean it later
+    *
+    *---------------------------------------------------------------------------------------------*/
+    public void getEncPuts()
+    {   
+        if(elevPivotMtrLT.get()>testMaxPower)
+        testMaxPower = elevPivotMtrLT.get();
+
+       SmartDashboard.putNumber("LTclosedError", elevPivotMtrLT.getClosedLoopError());
+       SmartDashboard.putNumber("EncRawValue", pivotEnc.getPosition());
+       SmartDashboard.putNumber("EncRawValue", pivotEnc.getAbsolutePosition());
+       SmartDashboard.putNumber("SelectedSensorPosition", elevPivotMtrLT.getSelectedSensorPosition());
+       SmartDashboard.putNumber("testMaxPower", testMaxPower);
+
+      // SmartDashboard.putString("ControlMode", ring) elevPivotMtrLT.getControlMode());
+      
+    }
+
+    public void testElevator()
+    {
+        elevPivotMtrLT.selectProfileSlot(0, 0);
+        elevPivotMtrLT.set(ControlMode.Position,2200.0);
     }
 }
