@@ -35,6 +35,11 @@ public class Robot extends TimedRobot {
   public ArrayList<CatzLog> dataArrayList;
 
   private XboxController xboxDrv;
+<<<<<<< HEAD
+=======
+  private XboxController xboxAux;
+
+>>>>>>> master
   private double steerAngle = 0.0;
   private double drivePower = 0.0;
   private double turnPower = 0.0;
@@ -78,6 +83,14 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("NavX", navX.getAngle());
     SmartDashboard.putNumber("Joystick", steerAngle);
 
+<<<<<<< HEAD
+=======
+    elevator.smartDashboardElevator();
+
+    //elevator.smartDashboardElevator_DEBUG();
+
+
+>>>>>>> master
     //drivetrain.testAngle();
   }
 
@@ -156,18 +169,27 @@ public class Robot extends TimedRobot {
       zeroGyro();
     }
 
+<<<<<<< HEAD
     if(xboxDrv.getAButton()) 
+=======
+    if(xboxAux.getAButton()) 
+>>>>>>> master
     {
       elevator.spoolStowedPos();
       elevator.lowScoringPosition();
     }
 
+<<<<<<< HEAD
     if(xboxDrv.getBButton())
+=======
+    if(xboxAux.getBButton())
+>>>>>>> master
     {
       elevator.spoolMidScorePos();
       elevator.midScoringPosition();
     }
 
+<<<<<<< HEAD
     if(xboxDrv.getRightY() >= 0.2)
     {
       elevator.startExtension(-xboxDrv.getRightY());
@@ -182,16 +204,29 @@ public class Robot extends TimedRobot {
     }
 
     if(xboxDrv.getYButton())
+=======
+    elevator.manualExtension(xboxAux.getRightY());
+
+    if(xboxAux.getYButton())
+>>>>>>> master
     {
       elevator.spoolTopScorePos();
       elevator.highScoringPosition();
     }
 
+<<<<<<< HEAD
     if(xboxDrv.getPOV() == 0)
     {
       elevator.manualPivotControl(0.3);
     }
     else if(xboxDrv.getPOV() == 180)
+=======
+    if(xboxAux.getPOV() == 0)
+    {
+      elevator.manualPivotControl(0.3);
+    }
+    else if(xboxAux.getPOV() == 180)
+>>>>>>> master
     {
       elevator.manualPivotControl(-0.3);
     }
@@ -199,6 +234,19 @@ public class Robot extends TimedRobot {
     {
       elevator.manualPivotControl(0);
     }
+<<<<<<< HEAD
+=======
+
+    //for test only
+    if(xboxAux.getRightTriggerAxis() >= 0.2)
+    {
+      elevator.manualPivotControl(xboxAux.getRightTriggerAxis());
+    } 
+    else if(xboxAux.getLeftTriggerAxis() >= 0.2)
+    {
+      elevator.manualPivotControl(xboxAux.getRightTriggerAxis());
+    }
+>>>>>>> master
   }
 
   /** This function is called once when the robot is disabled. */
