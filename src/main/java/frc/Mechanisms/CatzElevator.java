@@ -1,13 +1,6 @@
 package frc.Mechanisms;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
-<<<<<<< HEAD
-import com.revrobotics.CANSparkMax;
-import com.revrobotics.CANSparkMax.IdleMode;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
-import com.revrobotics.SparkMaxLimitSwitch;
-import com.revrobotics.RelativeEncoder;
-=======
 import com.ctre.phoenix.motorcontrol.InvertType;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMax.IdleMode;
@@ -16,22 +9,16 @@ import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.revrobotics.SparkMaxLimitSwitch;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkMaxPIDController;
->>>>>>> master
 
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
-<<<<<<< HEAD
-
-import edu.wpi.first.wpilibj.DigitalInput;
-=======
 import com.ctre.phoenix.sensors.CANCoder;
 import com.ctre.phoenixpro.signals.InvertedValue;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
->>>>>>> master
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -42,193 +29,65 @@ import frc.robot.Robot;
 public class CatzElevator {
     private Thread elevatorThread;
 
-<<<<<<< HEAD
-    private int elevSpoolstate;
-    private final static int ELEV_STATE_IDLE                    = 0;
-    private final static int ELEV_STATE_ELEVATOR_MOVE_TO_POS    = 1;
-=======
     private int elevatorState;
-    private final static int ELEV_STATE_IDLE                 = 0;
-    private final static int ELEV_STATE_ELEVATOR_MOVE_TO_TOP = 1;
-    private final static int ELEV_STATE_ELEVATOR_MOVE_TO_MID = 2;
-    private final static int ELEV_STATE_ELEVATOR_STOW        = 3;
+    private final static int ELEVATOR_STATE_IDLE               = 0;
+    private final static int ELEVATOR_STATE_ELEVATOR_SCORE_TOP = 1;
+    private final static int ELEVATOR_STATE_ELEVATOR_SCORE_MID = 2;
+    private final static int ELEVATOR_STATE_ELEVATOR_SCORE_LOW = 3;
+    private final static int ELEVATOR_STATE_ELEVATOR_STOW      = 4;
+    
+    /*----------------------------------------------------------------------------------------------
+    * 
+    *  Pivot Definitions
+    *
+    *---------------------------------------------------------------------------------------------*/
+    private WPI_TalonFX elevatorPivotMtrLT;
+    private WPI_TalonFX elevatorPivotMtrRT;
 
-    private static boolean elevatorSpoolDone = false;
-    private static boolean elevatorPivotDone = false;
-
-    private static boolean elevatorPivotMalualMode = false;
->>>>>>> master
-
-    public static CANSparkMax elevatorSpoolMC;
-
-    private WPI_TalonFX elevPivotMtrLT;
-    private WPI_TalonFX elevPivotMtrRT;
-
-    private final int ELEVATOR_SPOOL_MC_CAN_ID = 21;
-<<<<<<< HEAD
-    private final int LT_PIVOT_MOTOR_ID = 22;
-    private final int RT_PIVOT_MOTOR_ID = 20;
-
-    private final int ELEV_SPOOL_MC_CURRENT_LIMIT = 60; //TBD
-    private SupplyCurrentLimitConfiguration EncCurrentLimit;
-    private final int     ELEV_PIV_CURRENT_LIMIT      = 30;
-=======
     private final int ELEVATOR_PIVOT_LT_MC_ID  = 22;
     private final int ELEVATOR_PIVOT_RT_MC_ID  = 20;
 
-    private final int ELEV_SPOOL_MC_CURRENT_LIMIT = 60; //TBD
+    private static boolean elevatorPivotDone = false;
+
+    private static boolean elevatorPivotManualMode = false;
+
     private SupplyCurrentLimitConfiguration pivotMtrCurrentLimit;
-    private final int     ELEV_PIV_CURRENT_LIMIT        = 30;
->>>>>>> master
-    private final int     CURRENT_LIMIT_TRIGGER_AMPS    = 55;
-    private final double  CURRENT_LIMIT_TIMEOUT_SECONDS = 0.5;
-    private final boolean ENABLE_CURRENT_LIMIT          = true;
+    private final double  ELEVATOR_PIVOT_CURRENT_LIMIT                 = 60.0;
+    private final double  ELEVATOR_PIVOT_CURRENT_LIMIT_TRIGGER_AMPS    = 55;
+    private final double  ELEVATOR_PIVOT_CURRENT_LIMIT_TIMEOUT_SECONDS = 0.5;
+    private final boolean ELEVATOR_PIVOT_ENABLE_CURRENT_LIMIT          = true;
 
-<<<<<<< HEAD
-=======
-    private final static double ELEVATOR_SPOOL_EXTEND_MTR_POWER  =  1.0;
-    private final static double ELEVATOR_SPOOL_RETRACT_MTR_POWER = -0.5;
-    private final static double ELEVATOR_SPOOL_MTR_STOP          =  0.0;
+    private final double ELEVATOR_PIVOT_VERSA_STAGE_1_RATIO = 3.0;
+    private final double ELEVATOR_PIVOT_VERSA_STAGE_2_RATIO = 10.0;
+    private final double ELEVATOR_PIVOT_VERSA_FINAL_RATIO   = ELEVATOR_PIVOT_VERSA_STAGE_1_RATIO * ELEVATOR_PIVOT_VERSA_STAGE_2_RATIO;
 
->>>>>>> master
-    private SparkMaxLimitSwitch elevLimitSwitchStowedPos;
-    private SparkMaxLimitSwitch elevLimitSwitchScoringTop;
-    private DigitalInput elevLimitSwitchScoringMid;
+    private final double ELEVATOR_PIVOT_PINION_GEAR = 16.0;    //TBD - Moving to chain
+    private final double ELEVATOR_PIVOT_SPUR_GEAR   = 84.0;
+    private final double ELEVATOR_PIVOT_GEAR_RATIO  = ELEVATOR_PIVOT_SPUR_GEAR / ELEVATOR_PIVOT_PINION_GEAR;
 
-<<<<<<< HEAD
-    private final int ELEV_SCORING_TOP_DIO_PORT = 5; // TBD
-=======
-    private final int ELEV_SCORING_MID_DIO_PORT = 5; // TBD
->>>>>>> master
+    private final double ELEVATOR_PIVOT_FINAL_RATIO   = ELEVATOR_PIVOT_VERSA_FINAL_RATIO * ELEVATOR_PIVOT_GEAR_RATIO;
+    private final double ELEVATOR_PIVOT_CNTS_TO_DEGREES = 360.0 / 2048.0;   //TBD Finish; add gear ratio;  Should be CNTS_PER_DEG
 
-    private final double ELEV_SPOOL_GEAR_1_SIZE   = 12.0;     //Neo pinin TBD - confirm size
-    private final double ELEV_SPOOL_GEAR_2_SIZE   = 30.0;     //on spool shaft TBD - confirm size
-    private final double ELEV_SPOOL_GEAR_RATIO    = ELEV_SPOOL_GEAR_2_SIZE / ELEV_SPOOL_GEAR_1_SIZE;
-    private final double ELEV_SPOOL_DIAMETER      = 1.25;     //check diameter/radius
-    private final double ELEV_SPOOL_CIRCUMFERENCE = Math.PI * ELEV_SPOOL_DIAMETER;
-    private final double NEO_CNTS_PER_REVOLUTION  = 42.0;
-    private final double ELEV_SPOOL_CNT_TO_INCHES = ELEV_SPOOL_GEAR_RATIO * ELEV_SPOOL_CIRCUMFERENCE * (1/NEO_CNTS_PER_REVOLUTION);//test later 
+    private final double ELEV_PIVOT_SCORE_ANGLE_HIGH_DEG = 40.0;
+    private final double ELEV_PIVOT_SCORE_ANGLE_MID_DEG  = 40.0;
+    private final double ELEV_PIVOT_SCORE_ANGLE_LOW_DEG  = 40.0;
 
-<<<<<<< HEAD
-    private final double ELEV_PIV_CNTS_TO_DEGREES = 360/2048;//add gear ratio
+    private final double ELEV_PIVOT_SCORE_ANGLE_HIGH_CNTS = ELEV_PIVOT_SCORE_ANGLE_HIGH_DEG * ELEVATOR_PIVOT_CNTS_TO_DEGREES; //TBD - define by angle; add units to name
 
-    private final double ELEV_TOP_MAX_RANGE = 0.0;// TBD
-    private final double ELEV_BOT_MAX_RANGE = -0.0;// TBD
-=======
-    private SparkMaxPIDController elevSpoolPid;
-    private final double PID_ELEVATOR_SPOOL_KP = 0.00;
-    private final double PID_ELEVATOR_SPOOL_KI = 0.00;
-    private final double PID_ELEVATOR_SPOOL_KD = 0.00;
+    private final double ELEVATOR_PIVOT_SCORE_HIGH_POS = 2083.0; //to be fixed
+    private final double ELEVATOR_PIVOT_SCORE_MID_POS  = 2160.0; //to be fixed
+    private final double ELEVATOR_PIVOT_SCORE_LOW_POS  = 2150.0; //to be fixed
+    private final double ELEVATOR_PIVOT_STOWED_POS     = 2568.0;
 
+    private final int ELEVATOR_PIVOT_ENCODER_CAN_ID = 9;
 
-    private final double ELEV_PIVOT_VERSA_STAGE_1_RATIO = 3.0;
-    private final double ELEV_PIVOT_VERSA_STAGE_2_RATIO = 10.0;
-    private final double ELEV_PIVOT_VERSA_FINAL_RATIO   = ELEV_PIVOT_VERSA_STAGE_1_RATIO * ELEV_PIVOT_VERSA_STAGE_2_RATIO;
+    private CANCoder pivotEnc;
+    private DigitalInput MagEncPWMInput;    //TBD
 
-    private final double ELEV_PIVOT_PINION_GEAR = 16.0;
-    private final double ELEV_PIVOT_SPUR_GEAR   = 84.0;
-    private final double ELEV_PIVOT_GEAR_RATIO  = ELEV_PIVOT_SPUR_GEAR / ELEV_PIVOT_PINION_GEAR;
+    private static double pivotTargetAngle  = 0.0;
+    private static double pivotCurrentAngle = 0.0; //TBD How should we handle initialization?
 
-    private final double ELEV_PIVOT_FINAL_RATIO   = ELEV_PIVOT_VERSA_FINAL_RATIO * ELEV_PIVOT_GEAR_RATIO;
-    private final double ELEV_PIV_CNTS_TO_DEGREES = 360.0 / 2048.0;//add gear ratio
-
-    private final double ELEV_SPOOL_TOP_MAX_RANGE = 36.0;// TBD
-    private final double ELEV_SPOOL_BOT_MAX_RANGE = 0.0;
->>>>>>> master
-
-    private static RelativeEncoder elevSpoolEncoder;
-
-    private final double ELEV_SPOOL_ENCODER_STARTING_POS = 0.0;
-
-<<<<<<< HEAD
-    private final double ELEV_SPOOL_SCORE_TOP_POS = 0.0; //TBD
-    private final double ELEV_SPOOL_SCORE_MID_POS = 0.0;
-
-    private final double ELEV_PIVOT_SCORE_HIGH_POS  = 0.0;
-    private final double ELEV_PIVOT_SCORE_MID_POS   = 0.0;
-    private final double ELEV_PIVOT_SCORE_LOW_POS   = 0.0;
-=======
-    private double elevSpoolScoreTopPos = 10.0; //TBD - probably use ELEV_TOP_MAX_RANGE as score pos
-    private double elevSpoolScoreMidPos = 5.0;
-    private double elevSpoolScoreBotPos = 0.0;
-
-    private final double ELEV_PIVOT_SCORE_HIGH_POS = 2023.0; //to be fixed
-    private final double ELEV_PIVOT_SCORE_MID_POS  = 2500.0; //to be fixed
-    private final double ELEV_PIVOT_SCORE_LOW_POS  = 2500.0; //to be fixed
->>>>>>> master
-
-    private double currentSpoolPos;
-    private double elevCarriagePosInch;
-
-<<<<<<< HEAD
-    private static double pivotTargetAngle;
-    private static double pivotCurrentAngleLT;
-    //private static double pivotCurrentAngleRT;
-
-    private double pivotDistanceToTarget = pivotTargetAngle - pivotCurrentAngleLT;
-
-    static public double PID_ELEVATOR_UP_EMPTY_KP   = 0.00; //needs to be fixed to certain value
-	static public double PID_ELEVATOR_UP_EMPTY_KI   = 0.00; //needs to be fixed to certain value
-	static public double PID_ELEVATOR_UP_EMPTY_KD   = 0.00; //needs to be fixed to certain value
-
-    static public double PID_ELEVATOR_DOWN_EMPTY_KP = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_DOWN_EMPTY_KI = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_DOWN_EMPTY_KD = 0.00; //needs to be fixed to certain value
-
-    static public double PID_ELEVATOR_UP_CONE_KP    = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_UP_CONE_KI    = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_UP_CONE_KD    = 0.00; //needs to be fixed to certain value
-
-    static public double PID_ELEVATOR_DOWN_CONE_KP  = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_DOWN_CONE_KI  = 0.00; //needs to be fixed to certain value
-    static public double PID_ELEVATOR_DOWN_CONE_KD  = 0.00; //needs to be fixed to certain value
-
-    private final int INDEX_MATERIAL_NONE = 0;
-    private final int INDEX_MATERIAL_CONE = 1;
-    private int indexingMaterial = INDEX_MATERIAL_NONE;
-
-    private double elevSpoolMtrPwr;
-
-    private int currentPivotPos;
-
-    private final int ELEV_PIV_SCORE_LOW_POS  = 0;
-    private final int ELEV_PIV_SCORE_MID_POS  = 1;
-    private final int ELEV_PIV_SCORE_HIGH_POS = 2;
-
-
-
-    public CatzElevator()
-    {
-        elevatorSpoolMC = new CANSparkMax(ELEVATOR_SPOOL_MC_CAN_ID, MotorType.kBrushless);
-        elevPivotMtrLT = new WPI_TalonFX(LT_PIVOT_MOTOR_ID);
-        elevPivotMtrRT = new WPI_TalonFX(RT_PIVOT_MOTOR_ID);
-
-        elevatorSpoolMC.restoreFactoryDefaults();
-        elevPivotMtrLT.configFactoryDefault();
-        elevPivotMtrRT.configFactoryDefault();
-
-        setBrakeMode();
-
-        elevatorSpoolMC.setSmartCurrentLimit(ELEV_SPOOL_MC_CURRENT_LIMIT);
-        elevPivotMtrLT.configSupplyCurrentLimit(EncCurrentLimit);
-        elevPivotMtrRT.configSupplyCurrentLimit(EncCurrentLimit);
-
-        elevLimitSwitchStowedPos = elevatorSpoolMC.getReverseLimitSwitch(SparkMaxLimitSwitch.Type.kNormallyOpen);
-        elevLimitSwitchScoringTop = elevatorSpoolMC.getForwardLimitSwitch(SparkMaxLimitSwitch.Type.kNormallyOpen);
-        //elevLimitSwitchStowedPos = new DigitalInput(ELEV_STOWED_POS_DIO_PORT);
-        //elevLimitSwitchScoringTop = new DigitalInput(ELEV_SCORING_MID_DIO_PORT);
-        elevLimitSwitchScoringMid = new DigitalInput(ELEV_SCORING_TOP_DIO_PORT);
-
-        elevSpoolEncoder = elevatorSpoolMC.getEncoder();
-        elevSpoolEncoder.setPositionConversionFactor(ELEV_SPOOL_CNT_TO_INCHES);
-        
-        elevSpoolEncoder.setPosition(ELEV_SPOOL_ENCODER_STARTING_POS);
-=======
-    private static double pivotTargetAngle    = 0.0;
-    private static double pivotCurrentAngleLT = 0.0;
-    // private static double pivotCurrentAngleRT;
-
-    private double pivotDistanceToTarget = pivotTargetAngle - pivotCurrentAngleLT;
+    private double pivotDistanceToTarget = pivotTargetAngle - pivotCurrentAngle; //TBD is this init necessary?
 
     static public double PID_ELEVATOR_UP_EMPTY_KP   = 1.25; // needs to be fixed to certain value
     static public double PID_ELEVATOR_UP_EMPTY_KI   = 0.00; // needs to be fixed to certain value
@@ -248,102 +107,154 @@ public class CatzElevator {
 
     private boolean indexingCone = false;
 
-    private int currentPivotCmd = 2;//to be fixed
+    private final int ELEVATOR_PIVOT_SCORE_LOW_CMD  = 0;
+    private final int ELEVATOR_PIVOT_SCORE_MID_CMD  = 1;
+    private final int ELEVATOR_PIVOT_SCORE_HIGH_CMD = 2;
+    private final int ELEVATOR_PIVOT_STOWED_CMD     = 3;
 
-    private final int ELEV_PIV_SCORE_LOW_CMD = 0;
-    private final int ELEV_PIV_SCORE_MID_CMD = 1;
-    private final int ELEV_PIV_SCORE_HIGH_CMD = 2;
+    private int currentPivotCmd = ELEVATOR_PIVOT_STOWED_CMD;    //to be fixed
 
-    private double wheelOffset;
+    private double wheelOffset;    //TBD
 
-    private CANCoder pivotEnc;
-    private DigitalInput MagEncPWMInput;
-    private final int ELEV_PIV_ENCODER_SEN_ID = 9;
-    public double testMaxPower;
+    public double testMaxPower;    //TBD - used without init?  Can we delete?
+
+    /*----------------------------------------------------------------------------------------------
+    * 
+    *  Extend/Retract Definitions
+    *
+    *---------------------------------------------------------------------------------------------*/
+    public static CANSparkMax elevatorSpoolMC;
+
+    private final int ELEVATOR_SPOOL_MC_CAN_ID        = 21;
+
+    private final int ELEVATOR_SPOOL_MC_CURRENT_LIMIT = 80; //TBD
+
+    private final double ELEVATOR_SPOOL_MTR_STOP =  0.0;
+
+    private SparkMaxLimitSwitch elevatorLimitSwitchResetBottom;
+    private SparkMaxLimitSwitch elevatorLimitSwitchScoringTop;
+    private DigitalInput        elevatorLimitSwitchScoringMid;
+
+    private final int ELEVATOR_LIMIT_SWITCH_MID_DIO_PORT = 5; // TBD
+
+    private final double   ELEV_SPOOL_VERSA_STAGE_1_RATIO = 4.0;
+    private final double   ELEV_SPOOL_VERSA_STAGE_2_RATIO = 5.0;
+    private final double   ELEV_SPOOL_VERSA_RATIO         = ELEV_SPOOL_VERSA_STAGE_2_RATIO / ELEV_SPOOL_VERSA_STAGE_1_RATIO;
+
+    private final double   ELEV_SPOOL_SPROCKET_1          = 16.0;     //TBD - Confirm
+    private final double   ELEV_SPOOL_SPROCKET_2          = 22.0;     //TBD - Confirm
+    private final double   ELEV_SPOOL_SPROCKET_RATIO      = ELEV_SPOOL_SPROCKET_1 / ELEV_SPOOL_SPROCKET_2;
+
+    private final double   ELEV_SPOOL_FINAL_RATIO         = ELEV_SPOOL_VERSA_RATIO * ELEV_SPOOL_SPROCKET_RATIO;
+
+    private final double ELEVATOR_SPOOL_GEAR_1_SIZE   = 12.0;     //Neo pinin TBD - confirm size
+    private final double ELEVATOR_SPOOL_GEAR_2_SIZE   = 30.0;     //on spool shaft TBD - confirm size
+    private final double ELEVATOR_SPOOL_GEAR_RATIO    = ELEVATOR_SPOOL_GEAR_2_SIZE / ELEVATOR_SPOOL_GEAR_1_SIZE;
+    private final double ELEVATOR_SPOOL_DIAMETER      = 1.25;     //check diameter/radius
+    private final double ELEVATOR_SPOOL_CIRCUMFERENCE = Math.PI * ELEVATOR_SPOOL_DIAMETER;
+    private final double NEO_CNTS_PER_REVOLUTION  = 42.0;
+    private final double ELEVATOR_SPOOL_CNT_TO_INCHES = ELEVATOR_SPOOL_GEAR_RATIO * ELEVATOR_SPOOL_CIRCUMFERENCE * (1/NEO_CNTS_PER_REVOLUTION);//test later 
+    //private final double ELEVATOR_SPOOL_CNT_TO_INCHES = ELEV_SPOOL_FINAL_RATIO * ELEV_SPOOL_CIRCUMFERENCE * (1.0 / NEO_CNTS_PER_REVOLUTION);  //TBD INCORRECT CHK UNITS 
+
+    private SparkMaxPIDController elevatorSpoolPid;
+    private final double PID_ELEVATOR_SPOOL_KP = 0.25;//TBD
+    private final double PID_ELEVATOR_SPOOL_KI = 0.00;
+    private final double PID_ELEVATOR_SPOOL_KD = 0.00;
+
+    private double ELEVATOR_SPOOL_TOP_MAX_RANGE = 75.0;    // Inches
+    private double ELEVATOR_SPOOL_BOT_MAX_RANGE = 0.0;     // Inches
+
+    private static RelativeEncoder elevatorSpoolEncoder;
+
+    private final double ELEVATOR_SPOOL_ENCODER_STARTING_POS = 0.0;
+
+    private final double ELEVATOR_SPOOL_SCORE_TOP_POS = 74.0;   // Inches
+    private final double ELEVATOR_SPOOL_SCORE_MID_POS = 50.0;   // Inches
+    private final double ELEVATOR_SPOOL_SCORE_LOW_POS = 26.0;   // Inches
+    private final double ELEVATOR_SPOOL_STOWED_POS    = 40.0;   // Inches
+
+    private static boolean elevatorSpoolDone = false;
+
+    private static boolean elevatorSpoolManualMode = false;
+
+    private double elevatorCarriagePosInch;
 
 
     
-    public CatzElevator() {
+    public CatzElevator() 
+    {
         /************************************************************************************
          * spool
          ************************************************************************************/
         elevatorSpoolMC = new CANSparkMax(ELEVATOR_SPOOL_MC_CAN_ID, MotorType.kBrushless);
         elevatorSpoolMC.restoreFactoryDefaults();
 
-        elevatorSpoolMC.setSmartCurrentLimit(ELEV_SPOOL_MC_CURRENT_LIMIT);
+        elevatorSpoolMC.setSmartCurrentLimit(ELEVATOR_SPOOL_MC_CURRENT_LIMIT);
 
-        elevLimitSwitchStowedPos = elevatorSpoolMC.getReverseLimitSwitch(SparkMaxLimitSwitch.Type.kNormallyOpen);
-        elevLimitSwitchScoringTop = elevatorSpoolMC.getForwardLimitSwitch(SparkMaxLimitSwitch.Type.kNormallyOpen);
-        elevLimitSwitchScoringMid = new DigitalInput(ELEV_SCORING_MID_DIO_PORT);
+        elevatorLimitSwitchResetBottom  = elevatorSpoolMC.getReverseLimitSwitch(SparkMaxLimitSwitch.Type.kNormallyOpen);
+        elevatorLimitSwitchScoringTop = elevatorSpoolMC.getForwardLimitSwitch(SparkMaxLimitSwitch.Type.kNormallyOpen);
+        
 
-        elevSpoolEncoder = elevatorSpoolMC.getEncoder();
-        elevSpoolEncoder.setPositionConversionFactor(ELEV_SPOOL_CNT_TO_INCHES);
-        elevSpoolEncoder.setPosition(ELEV_SPOOL_ENCODER_STARTING_POS);
+        elevatorLimitSwitchScoringMid = new DigitalInput(ELEVATOR_LIMIT_SWITCH_MID_DIO_PORT);
 
-        elevSpoolPid = elevatorSpoolMC.getPIDController();
+        elevatorSpoolEncoder = elevatorSpoolMC.getEncoder();
+        elevatorSpoolEncoder.setPositionConversionFactor(ELEVATOR_SPOOL_CNT_TO_INCHES);
+        elevatorSpoolEncoder.setPosition(ELEVATOR_SPOOL_ENCODER_STARTING_POS);
 
-        elevSpoolPid.setP(PID_ELEVATOR_SPOOL_KP);
-        elevSpoolPid.setI(PID_ELEVATOR_SPOOL_KI);
-        elevSpoolPid.setD(PID_ELEVATOR_SPOOL_KD);
+        elevatorSpoolPid = elevatorSpoolMC.getPIDController();
+
+        elevatorSpoolPid.setP(PID_ELEVATOR_SPOOL_KP);
+        elevatorSpoolPid.setI(PID_ELEVATOR_SPOOL_KI);
+        elevatorSpoolPid.setD(PID_ELEVATOR_SPOOL_KD);
 
 
 
         /************************************************************************************
          * pivot
          ************************************************************************************/
-        elevPivotMtrLT = new WPI_TalonFX(ELEVATOR_PIVOT_LT_MC_ID);
-        elevPivotMtrRT = new WPI_TalonFX(ELEVATOR_PIVOT_RT_MC_ID);
+        elevatorPivotMtrLT = new WPI_TalonFX(ELEVATOR_PIVOT_LT_MC_ID);
+        elevatorPivotMtrRT = new WPI_TalonFX(ELEVATOR_PIVOT_RT_MC_ID);
         
-        elevPivotMtrLT.configFactoryDefault();
-        elevPivotMtrRT.configFactoryDefault();
+       // elevatorPivotMtrLT.configFactoryDefault();
+        //elevatorPivotMtrRT.configFactoryDefault();
 
-        elevPivotMtrRT.follow(elevPivotMtrLT);
-        elevPivotMtrRT.setInverted(true);
+        elevatorPivotMtrRT.follow(elevatorPivotMtrLT);
+        elevatorPivotMtrRT.setInverted(true);
 
-        pivotMtrCurrentLimit = new SupplyCurrentLimitConfiguration(ENABLE_CURRENT_LIMIT, ELEV_PIV_CURRENT_LIMIT,
-                CURRENT_LIMIT_TRIGGER_AMPS, CURRENT_LIMIT_TIMEOUT_SECONDS);
-        elevPivotMtrLT.configSupplyCurrentLimit(pivotMtrCurrentLimit);
-        elevPivotMtrRT.configSupplyCurrentLimit(pivotMtrCurrentLimit);
+        pivotMtrCurrentLimit = new SupplyCurrentLimitConfiguration(ELEVATOR_PIVOT_ENABLE_CURRENT_LIMIT, ELEVATOR_PIVOT_CURRENT_LIMIT,
+                ELEVATOR_PIVOT_CURRENT_LIMIT_TRIGGER_AMPS, ELEVATOR_PIVOT_CURRENT_LIMIT_TIMEOUT_SECONDS);
+        elevatorPivotMtrLT.configSupplyCurrentLimit(pivotMtrCurrentLimit);
+        elevatorPivotMtrRT.configSupplyCurrentLimit(pivotMtrCurrentLimit);
 
-        pivotEnc = new CANCoder(ELEV_PIV_ENCODER_SEN_ID); // CANCoder
+        pivotEnc = new CANCoder(ELEVATOR_PIVOT_ENCODER_CAN_ID);
         wheelOffset = 0.0;// TBD
+
         //make these constants, they are for testing rn only
-        elevPivotMtrLT.configReverseSoftLimitThreshold(1990.0);
-       elevPivotMtrLT.configReverseSoftLimitEnable(true);
+       elevatorPivotMtrLT.configReverseSoftLimitThreshold(2065.0);
+       elevatorPivotMtrLT.configReverseSoftLimitEnable(true);
 
-       elevPivotMtrLT.configForwardSoftLimitThreshold(2600.0);
-       elevPivotMtrLT.configForwardSoftLimitEnable(true);
+       elevatorPivotMtrLT.configForwardSoftLimitThreshold(2568.0);
+       elevatorPivotMtrLT.configForwardSoftLimitEnable(true);
 
-        elevPivotMtrLT.config_kP(0, PID_ELEVATOR_UP_EMPTY_KP);
-       // elevPivotMtrRT.config_kP(0, PID_ELEVATOR_UP_EMPTY_KP);
-        elevPivotMtrLT.config_kI(0, PID_ELEVATOR_UP_EMPTY_KI);
-        //elevPivotMtrRT.config_kI(0, PID_ELEVATOR_UP_EMPTY_KI);
-        elevPivotMtrLT.config_kD(0, PID_ELEVATOR_UP_EMPTY_KD);
-        //elevPivotMtrRT.config_kD(0, PID_ELEVATOR_UP_EMPTY_KD);
+        elevatorPivotMtrLT.config_kP(0, PID_ELEVATOR_UP_EMPTY_KP);   //TBD does empty really mean empty?
+        elevatorPivotMtrLT.config_kI(0, PID_ELEVATOR_UP_EMPTY_KI);
+        elevatorPivotMtrLT.config_kD(0, PID_ELEVATOR_UP_EMPTY_KD);
 
-        elevPivotMtrLT.config_kP(1, PID_ELEVATOR_DOWN_EMPTY_KP);
-        //elevPivotMtrRT.config_kP(1, PID_ELEVATOR_DOWN_EMPTY_KP);
-        elevPivotMtrLT.config_kI(1, PID_ELEVATOR_DOWN_EMPTY_KI);
-        //elevPivotMtrRT.config_kI(1, PID_ELEVATOR_DOWN_EMPTY_KI);
-        elevPivotMtrLT.config_kD(1, PID_ELEVATOR_DOWN_EMPTY_KD);
-        //elevPivotMtrRT.config_kD(1, PID_ELEVATOR_DOWN_EMPTY_KD);
+        elevatorPivotMtrLT.config_kP(1, PID_ELEVATOR_DOWN_EMPTY_KP);
+        elevatorPivotMtrLT.config_kI(1, PID_ELEVATOR_DOWN_EMPTY_KI);
+        elevatorPivotMtrLT.config_kD(1, PID_ELEVATOR_DOWN_EMPTY_KD);
 
-        elevPivotMtrLT.config_kP(2, PID_ELEVATOR_UP_CONE_KP);
-        //elevPivotMtrRT.config_kP(2, PID_ELEVATOR_UP_CONE_KP);
-        elevPivotMtrLT.config_kI(2, PID_ELEVATOR_UP_CONE_KI);
-        //elevPivotMtrRT.config_kI(2, PID_ELEVATOR_UP_CONE_KI);
-        elevPivotMtrLT.config_kD(2, PID_ELEVATOR_UP_CONE_KD);
-        //elevPivotMtrRT.config_kD(2, PID_ELEVATOR_UP_CONE_KD);
+        elevatorPivotMtrLT.config_kP(2, PID_ELEVATOR_UP_CONE_KP);
+        elevatorPivotMtrLT.config_kI(2, PID_ELEVATOR_UP_CONE_KI);
+        elevatorPivotMtrLT.config_kD(2, PID_ELEVATOR_UP_CONE_KD);
         
-        elevPivotMtrLT.config_kP(3, PID_ELEVATOR_DOWN_CONE_KP);
-        //elevPivotMtrRT.config_kP(3, PID_ELEVATOR_DOWN_CONE_KP);
-        elevPivotMtrLT.config_kI(3, PID_ELEVATOR_DOWN_CONE_KI);
-        //elevPivotMtrRT.config_kI(3, PID_ELEVATOR_DOWN_CONE_KI);
-        elevPivotMtrLT.config_kD(3, PID_ELEVATOR_DOWN_CONE_KD);
-        //elevPivotMtrRT.config_kD(3, PID_ELEVATOR_DOWN_CONE_KD);
+        elevatorPivotMtrLT.config_kP(3, PID_ELEVATOR_DOWN_CONE_KP);
+        elevatorPivotMtrLT.config_kI(3, PID_ELEVATOR_DOWN_CONE_KI);
+        elevatorPivotMtrLT.config_kD(3, PID_ELEVATOR_DOWN_CONE_KD);
 
         setBrakeMode();
->>>>>>> master
+
+        startElevatorThread();
     }
 
 
@@ -352,72 +263,79 @@ public class CatzElevator {
     {
         elevatorThread = new Thread(() ->
         {
-            //extension state - intakeOut
             while(true)
             {
-                getSpoolMtrPositionInch();
-                currentSpoolPos = elevCarriagePosInch;
+                getCarriagePositionInch();   //TBD Why here?
 
-<<<<<<< HEAD
-                switch (elevSpoolstate)
-                {
-                    case ELEV_STATE_IDLE:
-                    
-                    break;
-
-                    case ELEV_STATE_ELEVATOR_MOVE_TO_POS:
-                    
-=======
                 switch (elevatorState)
                 {
-                    case ELEV_STATE_IDLE:
+                    case ELEVATOR_STATE_IDLE:
                         
                     break;
 
-                    case ELEV_STATE_ELEVATOR_MOVE_TO_TOP:
-                        if(!elevatorSpoolDone && !elevatorPivotDone)
+                    case ELEVATOR_STATE_ELEVATOR_SCORE_TOP:
+                        elevatorSpoolDone = false;
+                        elevatorPivotDone = false;
+
+                        if(!elevatorSpoolDone)  //TBD - don't use negative logic
                         {
-                            if(!elevLimitSwitchScoringTop.isPressed())
+                            elevatorSpoolPid.setReference(ELEVATOR_SPOOL_SCORE_TOP_POS, CANSparkMax.ControlType.kPosition);
+                            if(elevatorLimitSwitchScoringTop.isPressed())
                             {
-                                elevatorSpoolMC.set(ELEVATOR_SPOOL_EXTEND_MTR_POWER);
-                            } 
-                            else
-                            {
-                                elevatorSpoolMC.set(ELEVATOR_SPOOL_MTR_STOP);
                                 elevatorSpoolDone = true;
                             }
+                        }
+                        if(!elevatorPivotDone)
+                        {
+                            elevatorPivotHighScoringPosition();
+                            elevatorPivotDone = true;
+                        }
 
+                        elevatorState = ELEVATOR_STATE_IDLE;
+                    break;
+
+                    case ELEVATOR_STATE_ELEVATOR_SCORE_MID:
+                        elevatorSpoolPid.setReference(ELEVATOR_SPOOL_SCORE_MID_POS, CANSparkMax.ControlType.kPosition);
+                        elevatorPivotMidScoringPosition();
+
+                        elevatorState = ELEVATOR_STATE_IDLE;
+                    break;
+
+                    case ELEVATOR_STATE_ELEVATOR_SCORE_LOW:
+                        elevatorSpoolDone = false;
+                        elevatorPivotDone = false;
+                        if(!elevatorSpoolDone)
+                        {
+                            elevatorSpoolPid.setReference(ELEVATOR_SPOOL_SCORE_LOW_POS, CANSparkMax.ControlType.kPosition);
                             
-                        }
-                    break;
-
-                    case ELEV_STATE_ELEVATOR_MOVE_TO_MID:
-                        if(!elevatorSpoolDone && !elevatorPivotDone)
-                        {
-                            elevSpoolPid.setReference(elevSpoolScoreMidPos, CANSparkMax.ControlType.kPosition);
-                            if(elevLimitSwitchScoringMid.get())
+                            if(elevatorLimitSwitchResetBottom.isPressed() || getCarriagePositionInch() <= ELEVATOR_SPOOL_BOT_MAX_RANGE )
                             {
-                                elevSpoolScoreMidPos = elevSpoolEncoder.getPosition();
+                                if(elevatorLimitSwitchResetBottom.isPressed())
+                                {
+                                    elevatorSpoolEncoder.setPosition(0.0);
+
+                                }
                                 elevatorSpoolDone = true;
                             }
                         }
+                        if(!elevatorPivotDone)
+                        {
+                            elevatorPivotLowScoringPosition();
+                            elevatorPivotDone = true;
+                        }
+                         
+                        elevatorState = ELEVATOR_STATE_IDLE;
                     break;
 
-                    case ELEV_STATE_ELEVATOR_STOW:
-                        if(!elevatorSpoolDone && !elevatorPivotDone)
-                        {
-                            elevSpoolPid.setReference(elevSpoolScoreBotPos, CANSparkMax.ControlType.kPosition);
-                            if(elevLimitSwitchStowedPos.isPressed())
-                            {
-                                elevSpoolScoreMidPos = elevSpoolEncoder.getPosition();
-                                elevatorSpoolDone = true;
-                            }
-                        }
+                    case ELEVATOR_STATE_ELEVATOR_STOW:
+                        elevatorSpoolPid.setReference(ELEVATOR_SPOOL_STOWED_POS, CANSparkMax.ControlType.kPosition);
+                        elevatorPivotStowedPosition();
+
+                        elevatorState = ELEVATOR_STATE_IDLE;
                     break;
 
                     default:
-                        elevatorState = ELEV_STATE_IDLE;
->>>>>>> master
+                        elevatorState = ELEVATOR_STATE_IDLE;
                     break;
                 }
             }
@@ -429,8 +347,23 @@ public class CatzElevator {
     public void setBrakeMode()
     {
         elevatorSpoolMC.setIdleMode(IdleMode.kBrake);
-        elevPivotMtrLT.setNeutralMode(NeutralMode.Brake);
-        elevPivotMtrRT.setNeutralMode(NeutralMode.Brake);
+        elevatorPivotMtrLT.setNeutralMode(NeutralMode.Coast);
+        elevatorPivotMtrRT.setNeutralMode(NeutralMode.Coast);
+    }
+
+    public void elevatorScoreTop()
+    {
+        elevatorState = ELEVATOR_STATE_ELEVATOR_SCORE_TOP;
+    }
+
+    public void elevatorScoreMid()
+    {
+        elevatorState = ELEVATOR_STATE_ELEVATOR_SCORE_MID;
+    }
+
+    public void elevatorScoreLow()
+    {
+        elevatorState = ELEVATOR_STATE_ELEVATOR_SCORE_LOW;
     }
 
 
@@ -440,271 +373,179 @@ public class CatzElevator {
     * Elevator spool code
     * 
     ************************************************************************************************************************************************/
-    public void spoolTopScorePos()
-    {
-<<<<<<< HEAD
-        if(currentSpoolPos < ELEV_TOP_MAX_RANGE)
-=======
-        if(currentSpoolPos < ELEV_SPOOL_TOP_MAX_RANGE)
->>>>>>> master
-        {
-            elevatorSpoolMC.set(0.3);
-        }
-    }
-
-
-
-    public void spoolMidScorePos()//TBD - set the position value to inches
-    {
-<<<<<<< HEAD
-        if(currentSpoolPos < 0.5)
-        {
-            elevatorSpoolMC.set(0.3);
-        }
-        else if(currentSpoolPos > 0.5)
-        {
-            elevatorSpoolMC.set(-0.3);
-=======
-        if(!elevLimitSwitchScoringMid.get())
-        {
-            if(currentSpoolPos < 0.5)
-            {
-                elevatorSpoolMC.set(0.3);
-            }
-            else if(currentSpoolPos > 0.5)
-            {
-                elevatorSpoolMC.set(-0.3);
-            }
->>>>>>> master
-        }
-    }
-
-
-
-    public void spoolStowedPos()
-    {
-        if(currentSpoolPos < 0.0)
-        {
-            elevatorSpoolMC.set(-0.3);
-        }
-    }
-
-
-
-<<<<<<< HEAD
-    public void startExtension(double mtrPwr)
-    {
-        elevSpoolMtrPwr = mtrPwr;
-
-        if(elevSpoolMtrPwr > 0.0)
-        {
-            if(getSpoolMtrPositionInch() >= ELEV_TOP_MAX_RANGE || elevLimitSwitchScoringTop.isPressed())
-            {
-                elevSpoolMtrPwr = 0.0;
-            }
-        } 
-        else if(elevSpoolMtrPwr < 0.0)
-        {
-            if(elevLimitSwitchStowedPos.isPressed())
-            {
-                elevSpoolMtrPwr = 0.0;
-                elevSpoolEncoder.setPosition(0.0);
-            }
-        }
-=======
     public void manualExtension(double xboxInput)
     {
+        xboxInput *= -1.0;
         double mtrPwr;
-        elevatorState = ELEV_STATE_IDLE;
+        elevatorState = ELEVATOR_STATE_IDLE;
+
+        if(Math.abs(xboxInput) > 0.2)
+        {
+            elevatorSpoolManualMode = true;
+        } 
+        else if(elevatorSpoolManualMode)
+        {
+            elevatorSpoolMC.set(0.0);
+            elevatorSpoolManualMode = false;
+        }
 
         mtrPwr = xboxInput;
+        System.out.println("xboxinput" + xboxInput);
 
-        if(xboxInput >= 0.2)//add a constant
+        if(elevatorSpoolManualMode)
         {
-            if(getSpoolMtrPositionInch() >= ELEV_SPOOL_TOP_MAX_RANGE || elevLimitSwitchScoringTop.isPressed())
+            if(xboxInput >= 0.2)//add a constant
             {
-                mtrPwr = 0.0;
+                if(getCarriagePositionInch() >= ELEVATOR_SPOOL_TOP_MAX_RANGE || elevatorLimitSwitchScoringTop.isPressed())
+                {
+                    mtrPwr = ELEVATOR_SPOOL_MTR_STOP;
+                } 
             } 
-        } 
-        else if(xboxInput <= -0.2)
-        {
-            if(elevLimitSwitchStowedPos.isPressed())
+            else if(xboxInput <= -0.2)
             {
-                mtrPwr = 0.0;
-                elevSpoolEncoder.setPosition(0.0);
+                mtrPwr *= 0.3;
+                if(elevatorLimitSwitchResetBottom.isPressed() || getCarriagePositionInch() <= ELEVATOR_SPOOL_BOT_MAX_RANGE )
+                {
+                    mtrPwr = ELEVATOR_SPOOL_MTR_STOP;
+                    System.out.println("Bot Limit Elevator Spool" + getCarriagePositionInch());
+
+                    if(elevatorLimitSwitchResetBottom.isPressed())
+                    {
+                        elevatorSpoolEncoder.setPosition(0.0);
+
+                    }
+                }
             }
-        } 
-        else
-        {
-            mtrPwr = 0.0;
+
+            elevatorSpoolMC.set(mtrPwr);
         }
-
-        elevatorSpoolMC.set(mtrPwr);
->>>>>>> master
     }
 
-
-
-    public double getSpoolMtrPositionInch()
+    public void ignoreSpoolSoftLimit(boolean ignoresSoftLimits)
     {
-        elevCarriagePosInch = elevSpoolEncoder.getPosition();
-        return elevCarriagePosInch;
-    }
-
-<<<<<<< HEAD
-
-
-    /************************************************************************************************************************************************
-    * 
-    * Elevator pivot code
-    * 
-    ************************************************************************************************************************************************/
-    public void lowScoringPosition()
-    {
-        if (indexingMaterial == INDEX_MATERIAL_CONE)
+        if (ignoresSoftLimits)
         {
-            elevPivotMtrLT.selectProfileSlot(3, 0);
-            elevPivotMtrRT.selectProfileSlot(3, 0);
+            ELEVATOR_SPOOL_TOP_MAX_RANGE = 9999.0;
+            ELEVATOR_SPOOL_BOT_MAX_RANGE = -9999.0;
         }
         else
         {
-            elevPivotMtrLT.selectProfileSlot(1, 0);
-            elevPivotMtrRT.selectProfileSlot(1, 0);
+            ELEVATOR_SPOOL_TOP_MAX_RANGE = 75.0;// TBD, this is an approx value
+            ELEVATOR_SPOOL_BOT_MAX_RANGE = 0.0;
         }
-        elevPivotMtrLT.set(ControlMode.Position, ELEV_PIVOT_SCORE_LOW_POS);
-        elevPivotMtrRT.set(ControlMode.Position, ELEV_PIVOT_SCORE_LOW_POS);
-        currentPivotPos = 0;
     }
 
-    public void midScoringPosition()
+
+
+    public double getCarriagePositionInch()
     {
-        if (indexingMaterial == INDEX_MATERIAL_CONE && ELEV_PIVOT_SCORE_HIGH_POS == currentPivotPos)
-        {
-            elevPivotMtrLT.selectProfileSlot(3, 0);
-            elevPivotMtrRT.selectProfileSlot(3, 0);
-        }
-        else if (indexingMaterial == INDEX_MATERIAL_CONE && ELEV_PIVOT_SCORE_LOW_POS == currentPivotPos)
-        {
-            elevPivotMtrLT.selectProfileSlot(2, 0);
-            elevPivotMtrRT.selectProfileSlot(2, 0);
-        }
-        else if (currentPivotPos == ELEV_PIVOT_SCORE_HIGH_POS)
-        {
-            elevPivotMtrLT.selectProfileSlot(1, 0);
-            elevPivotMtrRT.selectProfileSlot(1, 0);
-        }
-        else if (currentPivotPos == ELEV_PIVOT_SCORE_LOW_POS)
-        {
-            elevPivotMtrLT.selectProfileSlot(0, 0);
-            elevPivotMtrRT.selectProfileSlot(0, 0);
-        }
-        elevPivotMtrLT.set(ControlMode.Position, ELEV_PIVOT_SCORE_MID_POS);
-        elevPivotMtrRT.set(ControlMode.Position, ELEV_PIVOT_SCORE_MID_POS);
-        currentPivotPos = 1;
+        elevatorCarriagePosInch = elevatorSpoolEncoder.getPosition();
+        return elevatorCarriagePosInch;
     }
 
-    public void highScoringPosition()
-    {
-        if (indexingMaterial == INDEX_MATERIAL_CONE)
-        {
-            elevPivotMtrLT.selectProfileSlot(2, 0);
-            elevPivotMtrRT.selectProfileSlot(2, 0);
-        }
-        else
-        {
-            elevPivotMtrLT.selectProfileSlot(0, 0);
-            elevPivotMtrRT.selectProfileSlot(0, 0);
-        }
-        elevPivotMtrLT.set(ControlMode.Position, ELEV_PIVOT_SCORE_HIGH_POS);
-        elevPivotMtrRT.set(ControlMode.Position, ELEV_PIVOT_SCORE_HIGH_POS);
-        currentPivotPos = 2;
-    }
-
-    public void manualPivotControl(double power)
-    {
-        elevPivotMtrLT.set(power);
-        elevPivotMtrRT.set(power);
-=======
     /************************************************************************************************************************************************
      * 
      * Elevator pivot code
      *
      ************************************************************************************************************************************************/
-    public void lowScoringPosition() {
-        elevatorPivotMalualMode = false;
-        pivotCurrentAngleLT = pivotEnc.getPosition();
+    public void elevatorPivotLowScoringPosition() {
+        elevatorPivotManualMode = false;
+        pivotCurrentAngle = pivotEnc.getPosition();
 
         if (indexingCone) {
-            elevPivotMtrLT.selectProfileSlot(3, 0);
-            // elevPivotMtrRT.selectProfileSlot(3, 0);
+            elevatorPivotMtrLT.selectProfileSlot(3, 0);
             System.out.println("Low Scoring with cone");
         } else {
-            elevPivotMtrLT.selectProfileSlot(1, 0);
-            // elevPivotMtrRT.selectProfileSlot(1, 0);
+            elevatorPivotMtrLT.selectProfileSlot(1, 0);
             System.out.println("Low Scoring without cone");
         }
-        elevPivotMtrLT.set(ControlMode.Position, ELEV_PIVOT_SCORE_LOW_POS);
-        // elevPivotMtrRT.set(ControlMode.Position, ELEV_PIVOT_SCORE_LOW_POS);
-        currentPivotCmd = ELEV_PIV_SCORE_LOW_CMD;
+        elevatorPivotMtrLT.set(ControlMode.Position, ELEVATOR_PIVOT_SCORE_LOW_POS);
+        currentPivotCmd = ELEVATOR_PIVOT_SCORE_LOW_CMD;
     }
 
-    public void midScoringPosition() {
-        elevatorPivotMalualMode = false;
-        pivotCurrentAngleLT = pivotEnc.getPosition();
+    public void elevatorPivotMidScoringPosition() {
+        elevatorPivotManualMode = false;
+        pivotCurrentAngle = pivotEnc.getPosition();
 
-        if (indexingCone && currentPivotCmd == ELEV_PIV_SCORE_HIGH_CMD) {
-            elevPivotMtrLT.selectProfileSlot(3, 0);
-            // elevPivotMtrRT.selectProfileSlot(3, 0);
+        if (indexingCone && currentPivotCmd == ELEVATOR_PIVOT_SCORE_HIGH_CMD) //TBD Check independantly //TBD instead of checking state, why not just check current position
+        {
+            elevatorPivotMtrLT.selectProfileSlot(3, 0);
             System.out.println("Mid Scoring with cone");
-        } else if (indexingCone && currentPivotCmd == ELEV_PIV_SCORE_LOW_CMD) {
-            elevPivotMtrLT.selectProfileSlot(2, 0);
-            // elevPivotMtrRT.selectProfileSlot(2, 0);
+        } else if (indexingCone && currentPivotCmd == ELEVATOR_PIVOT_SCORE_LOW_CMD) 
+        {
+            elevatorPivotMtrLT.selectProfileSlot(2, 0);
             System.out.println("Mid Scoring with cone");
-        } else if (currentPivotCmd == ELEV_PIV_SCORE_HIGH_CMD) {
-            elevPivotMtrLT.selectProfileSlot(1, 0);
-            // elevPivotMtrRT.selectProfileSlot(1, 0);
+        } else if (currentPivotCmd == ELEVATOR_PIVOT_SCORE_HIGH_CMD) 
+        {
+            elevatorPivotMtrLT.selectProfileSlot(1, 0);
             System.out.println("Mid Scoring without cone");
-        } else if (currentPivotCmd == ELEV_PIV_SCORE_LOW_CMD) {
-            elevPivotMtrLT.selectProfileSlot(0, 0);
-            // elevPivotMtrRT.selectProfileSlot(0, 0);
+        } else if (currentPivotCmd == ELEVATOR_PIVOT_SCORE_LOW_CMD) 
+        {
+            elevatorPivotMtrLT.selectProfileSlot(0, 0);
             System.out.println("Mid Scoring without cone");
         }
-        elevPivotMtrLT.set(ControlMode.Position, ELEV_PIVOT_SCORE_MID_POS);
-        // elevPivotMtrRT.set(ControlMode.Position, ELEV_PIVOT_SCORE_MID_POS);
-        currentPivotCmd = ELEV_PIV_SCORE_MID_CMD;
+        elevatorPivotMtrLT.set(ControlMode.Position, ELEVATOR_PIVOT_SCORE_MID_POS);
+        currentPivotCmd = ELEVATOR_PIVOT_SCORE_MID_CMD;
     }
 
-    public void highScoringPosition() {
-        elevatorPivotMalualMode = false;
-        pivotCurrentAngleLT = pivotEnc.getPosition();
+    public void elevatorPivotStowedPosition() {
+        elevatorPivotManualMode = false;
+        pivotCurrentAngle = pivotEnc.getPosition();
+
+        if (indexingCone && currentPivotCmd == ELEVATOR_PIVOT_SCORE_HIGH_CMD) //TBD Check independantly //TBD instead of checking state, why not just check current position
+        {
+            elevatorPivotMtrLT.selectProfileSlot(3, 0);
+            System.out.println("Mid Scoring with cone");
+        } else if (indexingCone && currentPivotCmd == ELEVATOR_PIVOT_SCORE_LOW_CMD) 
+        {
+            elevatorPivotMtrLT.selectProfileSlot(2, 0);
+            System.out.println("Mid Scoring with cone");
+        } else if (currentPivotCmd == ELEVATOR_PIVOT_SCORE_HIGH_CMD) 
+        {
+            elevatorPivotMtrLT.selectProfileSlot(1, 0);
+            System.out.println("Mid Scoring without cone");
+        } else if (currentPivotCmd == ELEVATOR_PIVOT_SCORE_LOW_CMD) 
+        {
+            elevatorPivotMtrLT.selectProfileSlot(0, 0);
+            System.out.println("Mid Scoring without cone");
+        }
+        elevatorPivotMtrLT.set(ControlMode.Position, ELEVATOR_PIVOT_STOWED_POS);
+        currentPivotCmd = ELEVATOR_PIVOT_STOWED_CMD;
+    }
+
+    public void elevatorPivotHighScoringPosition() {
+        elevatorPivotManualMode = false;
+        pivotCurrentAngle = pivotEnc.getPosition();
 
         if (indexingCone) {
-            elevPivotMtrLT.selectProfileSlot(2, 0);
-            // elevPivotMtrRT.selectProfileSlot(2, 0);
+            elevatorPivotMtrLT.selectProfileSlot(2, 0);
             System.out.println("High Scoring with cone");
         } else {
-            elevPivotMtrLT.selectProfileSlot(0, 0);
-            // elevPivotMtrRT.selectProfileSlot(0, 0);
+            elevatorPivotMtrLT.selectProfileSlot(0, 0);
             System.out.println("HI Scoring without cone");
 
         }
-        elevPivotMtrLT.set(ControlMode.Position, ELEV_PIVOT_SCORE_HIGH_POS);
+        elevatorPivotMtrLT.set(ControlMode.Position, ELEVATOR_PIVOT_SCORE_HIGH_POS);
         System.out.println("HI Scoring controlmode set");
 
-        // elevPivotMtrRT.set(ControlMode.Position, ELEV_PIVOT_SCORE_HIGH_POS);
-        currentPivotCmd = ELEV_PIV_SCORE_HIGH_CMD;
+        currentPivotCmd = ELEVATOR_PIVOT_SCORE_HIGH_CMD;
     }
 
     public void manualPivotControl(double power) {
         if(Math.abs(power) > 0.0)
         {
-            elevatorPivotMalualMode = true;
-        }
-        if(elevatorPivotMalualMode == true)
+            elevatorPivotManualMode = true;
+        } 
+        else if(elevatorPivotManualMode)
         {
-            elevPivotMtrLT.set(power);
+            elevatorPivotManualMode = false;
+            elevatorPivotMtrLT.set(0.0);
         }
-        // elevPivotMtrRT.set(power);
+
+        if(elevatorPivotManualMode == true)
+        {
+            elevatorPivotMtrLT.set(power);
+        }
     }
 
 
@@ -716,11 +557,11 @@ public class CatzElevator {
     *---------------------------------------------------------------------------------------------*/
     public void smartDashboardElevator()
     {
-        SmartDashboard.putBoolean("Bottom Limitswitch", elevLimitSwitchStowedPos.isPressed());//set variable for limitswitch
-        SmartDashboard.putBoolean("Top Limitswitch", elevLimitSwitchScoringTop.isPressed());//set variable for limitswitch
-        SmartDashboard.putBoolean("Middle Limitswitch", elevLimitSwitchScoringMid.get());//set variable for limitswitch
+        SmartDashboard.putBoolean("Bottom Limitswitch", elevatorLimitSwitchResetBottom.isPressed());
+        SmartDashboard.putBoolean("Top Limitswitch", elevatorLimitSwitchScoringTop.isPressed());
+        SmartDashboard.putBoolean("Middle Limitswitch", elevatorLimitSwitchScoringMid.get());
 
-        SmartDashboard.putNumber("spool current position inches", elevCarriagePosInch);
+        SmartDashboard.putNumber("spool current position inches", elevatorCarriagePosInch);
     }
 
     public void smartDashboardElevator_DEBUG()
@@ -735,23 +576,19 @@ public class CatzElevator {
     *---------------------------------------------------------------------------------------------*/
     public void getEncPuts()
     {   
-        if(elevPivotMtrLT.get()>testMaxPower)
-        testMaxPower = elevPivotMtrLT.get();
+        if(elevatorPivotMtrLT.get()>testMaxPower)
+        testMaxPower = elevatorPivotMtrLT.get();
 
-       SmartDashboard.putNumber("LTclosedError", elevPivotMtrLT.getClosedLoopError());
+       SmartDashboard.putNumber("LTclosedError", elevatorPivotMtrLT.getClosedLoopError());
        SmartDashboard.putNumber("EncRawValue", pivotEnc.getPosition());
        SmartDashboard.putNumber("EncRawValue", pivotEnc.getAbsolutePosition());
-       SmartDashboard.putNumber("SelectedSensorPosition", elevPivotMtrLT.getSelectedSensorPosition());
-       SmartDashboard.putNumber("testMaxPower", testMaxPower);
-
-      // SmartDashboard.putString("ControlMode", ring) elevPivotMtrLT.getControlMode());
-      
+       SmartDashboard.putNumber("SelectedSensorPosition", elevatorPivotMtrLT.getSelectedSensorPosition());
+       SmartDashboard.putNumber("testMaxPower", testMaxPower);      
     }
 
     public void testElevator()
     {
-        elevPivotMtrLT.selectProfileSlot(0, 0);
-        elevPivotMtrLT.set(ControlMode.Position,2200.0);
->>>>>>> master
+        elevatorPivotMtrLT.selectProfileSlot(0, 0);
+        elevatorPivotMtrLT.set(ControlMode.Position,2200.0);
     }
 }

@@ -8,14 +8,24 @@ import java.util.ArrayList;
 
 import com.kauailabs.navx.frc.AHRS;
 
+import edu.wpi.first.wpilibj.PneumaticHub;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
+import frc.Autonomous.CatzAutonomous;
+import frc.Autonomous.CatzAutonomousPaths;
+
 import frc.DataLogger.CatzLog;
 import frc.DataLogger.DataCollection;
+
+import frc.Mechanisms.CatzBalance;
 import frc.Mechanisms.CatzDrivetrain;
 import frc.Mechanisms.CatzElevator;
+import frc.Mechanisms.CatzIntake;
+import frc.Mechanisms.CatzClaw;
+import frc.Mechanisms.CatzRGB;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to
@@ -24,76 +34,190 @@ import frc.Mechanisms.CatzElevator;
  * project.
  */
 public class Robot extends TimedRobot {
-  
-  public CatzDrivetrain drivetrain;
-  public CatzElevator   elevator;
 
-  private AHRS navX;
+  //----------------------------------------------------------------------------------------------
+  //  Shared Libraries & Utilities
+  //----------------------------------------------------------------------------------------------
+  public static CatzConstants       constants;
+
+  public static DataCollection      dataCollection;
+  public ArrayList<CatzLog>         dataArrayList;
+
+  //----------------------------------------------------------------------------------------------
+  //  Shared Robot Components (e.g. not mechanism specific)
+  //----------------------------------------------------------------------------------------------
+  //PDH
+  //Camera
+  //Limelight???
   
-  public static DataCollection dataCollection;
-  public static Timer currentTime;
-  public ArrayList<CatzLog> dataArrayList;
+
+  public static AHRS                navX;
+
+  public final int PH_CAN_ID = 1;
+  public PneumaticHub pneumaticHub;
+
+  private final int XBOX_DRV_PORT = 0;
+  private final int XBOX_AUX_PORT = 1;
+
+  private final int DPAD_UP = 0;
+  private final int DPAD_DN = 180;
+  private final int DPAD_LT = 270;
+  private final int DPAD_RT = 90;
 
   private XboxController xboxDrv;
-<<<<<<< HEAD
-=======
   private XboxController xboxAux;
 
->>>>>>> master
-  private double steerAngle = 0.0;
-  private double drivePower = 0.0;
-  private double turnPower = 0.0;
-  private double gyroAngle = 0.0;
+  public static CatzRGB catzRGB;
 
-  /**
-   * This function is run when the robot is first started up and should be used for any
-   * initialization code.
-   */
+  public static boolean robotDisabled = false;
+  public static boolean coneOnboard = false;
+  public static boolean cubeOnboard = false;
+  public static boolean cubeScoringReady = false;
+  public static boolean coneScoringReady = false;
+  public static boolean inAuton = false;
+  public static boolean autobalancing = false;
+  public static boolean noGamePiece = false;
+  
+
+  //----------------------------------------------------------------------------------------------
+  //  Autonomous
+  //----------------------------------------------------------------------------------------------
+  public static CatzAutonomous      auton;
+  public static CatzBalance         balance;
+  public static CatzAutonomousPaths paths;
+
+  //----------------------------------------------------------------------------------------------
+  //  Mechanisms
+  //----------------------------------------------------------------------------------------------
+  public static CatzDrivetrain      drivetrain;
+  public static CatzIntake          intake;
+  public static CatzElevator        elevator;
+  public static CatzClaw            claw;
+
+
+  public static Timer               currentTime;      //TBD - what is this intended for?
+
+
+  // put into mechanism classes 
+  private final boolean DEPLOYED = true;
+  private final boolean STOWED   = false;
+  public boolean elevatorState = STOWED;
+  public boolean intakeState   = STOWED;
+
+  /*
+   * For autobalancing
+  */
+  private final double OFFSET_DELAY = 0.5;    // put into mechanism classes
+
+
+  /*-----------------------------------------------------------------------------------------
+  *  
+  *  robotXxx
+  *
+  *----------------------------------------------------------------------------------------*/
+  /*-----------------------------------------------------------------------------------------
+  * This function is run when the robot is first started up and should be used for any
+  * initialization code.
+  *----------------------------------------------------------------------------------------*/
   @Override
   public void robotInit()
   {
-    xboxDrv = new XboxController(0);
+    //----------------------------------------------------------------------------------------------
+    //  Shared Libraries & Utilities
+    //----------------------------------------------------------------------------------------------
+    constants      = new CatzConstants();
 
-    drivetrain = new CatzDrivetrain();
     dataCollection = new DataCollection();
-    elevator = new CatzElevator();
+    dataArrayList  = new ArrayList<CatzLog>();
+    dataCollection.dataCollectionInit(dataArrayList);
 
+    //----------------------------------------------------------------------------------------------
+    //  Shared Robot Components (e.g. not mechanism specific)
+    //----------------------------------------------------------------------------------------------
+    //PDH
+    
+    pneumaticHub = new PneumaticHub(PH_CAN_ID);
     navX = new AHRS();
     navX.reset();
-    navX.setAngleAdjustment(-navX.getYaw());
+    navX.setAngleAdjustment(-navX.getYaw());  //TBD - What is this for?
 
-    dataArrayList = new ArrayList<CatzLog>();
-    dataCollection.dataCollectionInit(dataArrayList);
+
+    xboxDrv = new XboxController(XBOX_DRV_PORT);
+    xboxAux = new XboxController(XBOX_AUX_PORT);
+
+    //----------------------------------------------------------------------------------------------
+    //  Autonomous
+    //----------------------------------------------------------------------------------------------
+    // auton          = new CatzAutonomous();
+    // balance        = new CatzBalance();
+    // paths          = new CatzAutonomousPaths();
+
+    //----------------------------------------------------------------------------------------------
+    //  Mechanisms
+    //----------------------------------------------------------------------------------------------
+    drivetrain     = new CatzDrivetrain();
+    // intake         = new CatzIntake();
+    elevator       = new CatzElevator();
+    claw           = new CatzClaw();
 
 
     currentTime = new Timer();
   }
 
-  /**
+
+  /*-----------------------------------------------------------------------------------------
    * This function is called every robot packet, no matter the mode. Use this for items like
    * diagnostics that you want ran during disabled, autonomous, teleoperated and test.
    *
    * <p>This runs after the mode specific periodic functions, but before LiveWindow and
    * SmartDashboard integrated updating.
-   */
+   *----------------------------------------------------------------------------------------*/
   @Override
   public void robotPeriodic()
   {
-    drivetrain.updateShuffleboard();
+    //drivetrain.updateShuffleboard();
+
+    //For each mechanism - debug and comp
     SmartDashboard.putNumber("NavX", navX.getAngle());
-    SmartDashboard.putNumber("Joystick", steerAngle);
-
-<<<<<<< HEAD
-=======
     elevator.smartDashboardElevator();
+    elevator.getEncPuts();
 
-    //elevator.smartDashboardElevator_DEBUG();
-
-
->>>>>>> master
     //drivetrain.testAngle();
-  }
 
+    
+  //   if(!(isDisabled()))
+  //   {
+  //     robotDisabled = false;
+  //     if(isAutonomous())
+  //     {
+  //       if(balance.startBalance)
+  //       {
+  //         autobalancing = true;
+  //       }
+  //       inAuton = true;
+  //     }
+  //     else
+  //     {
+
+  //     }
+
+      
+      
+  //   }
+  //   else
+  //   {
+  //     robotDisabled = true;
+  //   }
+    
+  //   catzRGB.LEDWork();
+   }
+
+
+  /*-----------------------------------------------------------------------------------------
+  *  
+  *  autonomousXxx
+  *
+  *----------------------------------------------------------------------------------------*/
   /**
    * This autonomous (along with the chooser code above) shows how to select between different
    * autonomous modes using the dashboard. The sendable chooser code works with the Java
@@ -103,152 +227,232 @@ public class Robot extends TimedRobot {
    * <p>You can add additional auto modes by adding additional comparisons to the switch structure
    * below with additional strings. If using the SendableChooser make sure to add them to the
    * chooser code above as well.
-   */
+  *----------------------------------------------------------------------------------------*/
   @Override
   public void autonomousInit()
   {
-    drivetrain.setBrakeMode();
-
-  }
-
-  /** This function is called periodically during autonomous. */
-  @Override
-  public void autonomousPeriodic()
-  {
-    gyroAngle = getGyroAngle();
-    drivetrain.drive(0.0, 0.5, gyroAngle);
-    drivetrain.dataCollection();  
-  }
-
-  /** This function is called once when teleop is enabled. */
-  @Override
-  public void teleopInit() 
-  {
-    drivetrain.setBrakeMode();
+    //drivetrain.setBrakeMode();
 
     currentTime.reset();
     currentTime.start();
 
+    dataCollection.setLogDataID(dataCollection.LOG_ID_DRV_STRAIGHT);  //TBD Pull from shuffleboard
+    dataCollection.startDataCollection();                             //TBD where do we want to do this since also used in teleop?  robotInit???
+
+    //drivetrain.initializeOffsets();     //TBD - Nicholas Update
+    Timer.delay(OFFSET_DELAY);
+
+    paths.determinePath();
+
+    paths.stop();                   //TBD - move into autonomous file
+    
+  }
+
+
+  /*-----------------------------------------------------------------------------------------
+  *
+  *  This function is called periodically during autonomous.
+  *
+  *----------------------------------------------------------------------------------------*/
+  @Override
+  public void autonomousPeriodic()
+  {
+    // drivetrain.drive(0.0, 0.5, navX.getAngle());
+    
+    // drivetrain.dataCollection();  
+  }
+
+
+  /*-----------------------------------------------------------------------------------------
+  *  
+  *  teleopXxx
+  *
+  *----------------------------------------------------------------------------------------*/
+  /** This function is called once when teleop is enabled.
+  *----------------------------------------------------------------------------------------*/
+  @Override
+  public void teleopInit() 
+  {
+
+    //drivetrain.setBrakeMode();      //TBD
+
+    currentTime.reset();            //TBD
+    currentTime.start();
+
+    dataCollection.setLogDataID(dataCollection.LOG_ID_INTAKE);
     dataCollection.startDataCollection();
   }
 
-  /** This function is called periodically during operator control. */
+
+  /*-----------------------------------------------------------------------------------------
+  *
+  *  This function is called periodically during operator control.
+  *
+  *----------------------------------------------------------------------------------------*/
   @Override
   public void teleopPeriodic()
   {
-    steerAngle = calcJoystickAngle(xboxDrv.getLeftX(), xboxDrv.getLeftY());
-    drivePower = calcJoystickPower(xboxDrv.getLeftX(), xboxDrv.getLeftY());
-    turnPower = xboxDrv.getRightX();
-    gyroAngle = getGyroAngle();
-
-    if(drivePower >= 0.1)
-    {
-      if(Math.abs(turnPower) >= 0.1)
-      {
-        drivetrain.translateTurn(steerAngle, drivePower, turnPower, gyroAngle);
-      }
-      else
-      {
-        drivetrain.drive(steerAngle, drivePower, gyroAngle);
-      }
-      drivetrain.dataCollection();
-    }
-    else if(Math.abs(turnPower) >= 0.1)
-    {
-      drivetrain.rotateInPlace(turnPower);
-      drivetrain.dataCollection();
-    }
-    else
-    {
-      drivetrain.setSteerPower(0.0);
-      drivetrain.setDrivePower(0.0);
-    }
+    //----------------------------------------------------------------------------------------------
+    //  Drivetrain
+    //----------------------------------------------------------------------------------------------
+    drivetrain.cmdProcSwerve(xboxDrv.getLeftX(), xboxDrv.getLeftY(), xboxDrv.getRightX(), navX.getAngle());
 
     if(xboxDrv.getStartButtonPressed())
     {
       zeroGyro();
     }
 
-<<<<<<< HEAD
-    if(xboxDrv.getAButton()) 
-=======
-    if(xboxAux.getAButton()) 
->>>>>>> master
+    //----------------------------------------------------------------------------------------------
+    //  Intake
+    //----------------------------------------------------------------------------------------------
+    //TBD - move logic to class method; this removes multiple gets and duplicate logic
+
+    // intake.cmdProcDeploy(xboxDrv.getLeftStickButton());
+    // intake.cmdProcStow  (xboxDrv.getRightStickButton());
+
+    // intake.cmdProcRollerIn (xboxDrv.getRightTriggerAxis());
+    // intake.cmdProcRollerOut(xboxDrv.getLeftTriggerAxis());
+
+
+    // if(xboxDrv.getLeftStickButton())
+    // {
+    //   if(elevatorState == DEPLOYED)
+    //   {
+    //     //flash colors indicating that you can't deploy
+    //   }
+    //   else
+    //   {
+    //     intake.intakePivotDeploy();
+    //     intakeState = DEPLOYED;
+    //   }
+    // }
+
+
+    // else if(xboxDrv.getRightStickButton())
+    // {
+    //   intake.intakePivotStow();
+    //   intakeState = STOWED;
+    // }
+
+    
+    //leftTrigger-->control rollerOut
+    // if (xboxDrv.getLeftTriggerAxis() > 0.2)
+    // { 
+    //   intake.intakeRollerOut();     
+    // }
+
+    // //rightTrigger-->control rollerIn
+    // if (xboxDrv.getLeftTriggerAxis() > 0.2)     //TBD - COPY / PASTE Error
+    // {
+    //   intake.intakeRollerIn();      
+    // }
+
+
+    //----------------------------------------------------------------------------------------------
+    //  Elevator - Automated
+    //----------------------------------------------------------------------------------------------
+    
+    // elevator.cmdProcGoToPositionScoreLow (xboxAux.getAButton());
+    // elevator.cmdProcGoToPositionScoreMid (xboxAux.getBButton());
+    // elevator.cmdProcGoToPositionScoreHigh(xboxAux.getYButton());
+
+    //TBD HOW DO WE GO TO STOW POSITION???
+
+    if(xboxAux.getAButton())
     {
-      elevator.spoolStowedPos();
-      elevator.lowScoringPosition();
+      if(intakeState == DEPLOYED)
+      {
+        //stow intake
+        intakeState = STOWED;
+      }
+      // elevator.spoolStowedPos();
+      // elevator.elevatorPivotLowScoringPosition();
+      elevator.elevatorScoreLow();
+
+      //go to LOW scoring position
+    }
+    else if(xboxAux.getBButton())
+    {
+      if(intakeState == DEPLOYED)
+      {
+        //stow intake
+        intakeState = STOWED;
+      }
+      // elevator.spoolMidScorePos();
+      // elevator.elevatorPivotMidScoringPosition();
+      elevator.elevatorScoreMid();
+
+      //go to MID scoring position 
+    }
+    else if(xboxAux.getYButton())
+    {
+      if(intakeState == DEPLOYED)
+      {
+        //stow intake
+        intakeState = STOWED;
+      }
+      // elevator.spoolTopScorePos();
+      // elevator.elevatorPivotHighScoringPosition();
+      elevator.elevatorScoreTop();
+
+      //go to HIGH scoring position
     }
 
-<<<<<<< HEAD
-    if(xboxDrv.getBButton())
-=======
-    if(xboxAux.getBButton())
->>>>>>> master
-    {
-      elevator.spoolMidScorePos();
-      elevator.midScoringPosition();
-    }
 
-<<<<<<< HEAD
-    if(xboxDrv.getRightY() >= 0.2)
-    {
-      elevator.startExtension(-xboxDrv.getRightY());
-    }
-    else if(xboxDrv.getRightY() <= -0.2)
-    {
-      elevator.startExtension(xboxDrv.getRightY());
-    }
-    else
-    {
-      elevator.startExtension(0.0);
-    }
+    //----------------------------------------------------------------------------------------------
+    //  Elevator - Manual
+    //----------------------------------------------------------------------------------------------
+    
 
-    if(xboxDrv.getYButton())
-=======
     elevator.manualExtension(xboxAux.getRightY());
 
-    if(xboxAux.getYButton())
->>>>>>> master
+    elevator.ignoreSpoolSoftLimit(xboxAux.getRightStickButton());
+    
+    if(xboxAux.getPOV() == DPAD_UP)
     {
-      elevator.spoolTopScorePos();
-      elevator.highScoringPosition();
-    }
-
-<<<<<<< HEAD
-    if(xboxDrv.getPOV() == 0)
-    {
+      if(intakeState == DEPLOYED)
+      {
+        //stow intake
+        intakeState = STOWED;
+      }
       elevator.manualPivotControl(0.3);
+      //while pressed, deploy elevator
+    
     }
-    else if(xboxDrv.getPOV() == 180)
-=======
-    if(xboxAux.getPOV() == 0)
+    else if(xboxAux.getPOV() == DPAD_DN)
     {
-      elevator.manualPivotControl(0.3);
-    }
-    else if(xboxAux.getPOV() == 180)
->>>>>>> master
-    {
+      //while pressed, pivot elevator
       elevator.manualPivotControl(-0.3);
     }
     else
     {
-      elevator.manualPivotControl(0);
+      elevator.manualPivotControl(0.0);
     }
-<<<<<<< HEAD
-=======
 
-    //for test only
-    if(xboxAux.getRightTriggerAxis() >= 0.2)
-    {
-      elevator.manualPivotControl(xboxAux.getRightTriggerAxis());
-    } 
-    else if(xboxAux.getLeftTriggerAxis() >= 0.2)
-    {
-      elevator.manualPivotControl(xboxAux.getRightTriggerAxis());
-    }
->>>>>>> master
-  }
 
+    //----------------------------------------------------------------------------------------------
+    //  Claw
+    //----------------------------------------------------------------------------------------------
+    claw.procCmdClaw(xboxAux.getXButton(),      //Open Claw
+                     xboxAux.getXButton() );    //lose Claw
+  
+
+    //----------------------------------------------------------------------------------------------
+    //  Indexer
+    //----------------------------------------------------------------------------------------------
+    if(xboxAux.getPOV() == DPAD_LT)
+    {
+      //indexer manual index
+    }        
+    
+  }   //End of teleopPeriodic()
+
+
+  /*-----------------------------------------------------------------------------------------
+  *  
+  *  disabledXxx
+  *
+  *----------------------------------------------------------------------------------------*/
   /** This function is called once when the robot is disabled. */
   @Override
   public void disabledInit()
@@ -278,18 +482,30 @@ public class Robot extends TimedRobot {
 
   }
 
+
+  /*-----------------------------------------------------------------------------------------
+  *  
+  *  testXxx
+  *
+  *----------------------------------------------------------------------------------------*/
   /** This function is called once when test mode is enabled. */
   @Override
   public void testInit()
   {
-    drivetrain.initializeOffsets(navX);
+    drivetrain.initializeOffsets();
   }
 
   /** This function is called periodically during test mode. */
   @Override
   public void testPeriodic() {}
 
-  /** This function is called once when the robot is first started up. */
+
+  /*-----------------------------------------------------------------------------------------
+  *  
+  *  simulateXxx
+  *
+  *----------------------------------------------------------------------------------------*/
+ /** This function is called once when the robot is first started up. */
   @Override
   public void simulationInit() {}
 
@@ -299,48 +515,14 @@ public class Robot extends TimedRobot {
 
 
 
-  public double calcJoystickAngle(double xJoy, double yJoy)
-    {
-        double angle = Math.atan(Math.abs(xJoy) / Math.abs(yJoy));
-        angle *= (180 / Math.PI);
-
-        if(yJoy <= 0)   //joystick pointed up
-        {
-            if(xJoy < 0)    //joystick pointed left
-            {
-                //no change
-            }
-            if(xJoy >= 0)   //joystick pointed right
-            {
-                angle = -angle;
-            }
-        }
-        else    //joystick pointed down
-        {
-            if(xJoy < 0)    //joystick pointed left
-            {
-                angle = 180 - angle;
-            }
-            if(xJoy >= 0)   //joystick pointed right
-            {
-                angle = -180 + angle;
-            }
-        }
-        return angle;
-    }
-
-    public double calcJoystickPower(double xJoy, double yJoy)
-    {
-      return (Math.sqrt(Math.pow(xJoy, 2) + Math.pow(yJoy, 2)));
-    }
+  /*-----------------------------------------------------------------------------------------
+  *  
+  *  TBD - MOVE THIS TO APPROPRIATE CLASS
+  *
+  *----------------------------------------------------------------------------------------*/
 
     public void zeroGyro()
     {
-        navX.setAngleAdjustment(-navX.getYaw());
-    }
-
-    public double getGyroAngle()
-    {
-        return navX.getAngle();
+      navX.setAngleAdjustment(-navX.getYaw());
     }
 }
