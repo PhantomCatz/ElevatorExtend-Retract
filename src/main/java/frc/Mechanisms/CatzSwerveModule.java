@@ -191,4 +191,13 @@ public class CatzSwerveModule
         SmartDashboard.putNumber(motorID + " Wheel Angle", (currentAngle));
         //SmartDashboard.putBoolean(motorID + " Flipped", driveDirectionFlipped);
     }
+
+    /*Auto Balance */
+    public void reverseDrive(Boolean reverse){
+        DRIVE_MOTOR.setInverted(reverse);
+    }
+
+    public double getDriveMotorPosition(){
+        return DRIVE_MOTOR.getSelectedSensorPosition();
+    }
 }

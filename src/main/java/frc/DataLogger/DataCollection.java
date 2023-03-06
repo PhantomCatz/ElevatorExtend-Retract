@@ -18,9 +18,9 @@ import java.util.Date;
 
 public class DataCollection 
 {	
-    Date date = Calendar.getInstance().getTime();	
-    SimpleDateFormat sdf = new SimpleDateFormat("_yyyyMMdd_kkmmss");	
-    String dateFormatted = sdf.format(date);
+    Date date;	
+    SimpleDateFormat sdf;
+    String dateFormatted;
 
     public boolean fileNotAppended = false;
 
@@ -42,13 +42,29 @@ public class DataCollection
     public static final int LOG_ID_NONE            = 0;
     public static final int LOG_ID_SWERVE_STEERING = 1;
     public static final int LOG_ID_SWERVE_DRIVING  = 2;
+    public static final int LOG_ID_BALANCE         = 3;
+    public static final int LOG_ID_INTAKE          = 4;
+    public static final int LOG_ID_INDEXER         = 5;
+    public static final int LOG_ID_ELEVATOR        = 6;
+    public static final int LOG_ID_CLAW            = 7;
+    public static final int LOG_ID_DRV_STRAIGHT    = 8;
+    public static final int LOG_ID_TURN_IN_PLACE   = 9;
 
     public boolean validLogID = true;
 
     private final String LOG_HDR_SWERVE_STEERING = "time,target,lf-angle,lf-err,lf-flip-err,lb-angle,lb-err,lb-flip-err,rf-angle,rf-err,rf-flip-err,rb-angle,rb-err,rb-flip-err";
     private final String LOG_HDR_SWERVE_DRIVING = "time,target,lf-angle,lf-dist,lf-vel,lb-angle,lb-dist,lb-vel,rf-angle,rf-dist,rf-vel,rb-angle,rb-dist,rb-vel,lf-error";
+    private final String LOG_HDR_BALANCE_MOD = "time,pitch,rate,power,pitchTerm,rateTerm,";
+    private final String LOG_HDR_INTAKE = "time,tar-ang-rt,tar-ang,fin-mtr-pwr,mtr-pwr,curr-ang,dt-ang,dt-time";
+    private final String LOG_HDR_INDEXER = "";
+    private final String LOG_HDR_ELEVATOR = "";
+    private final String LOG_HDR_CLAW = "";
+    private final String LOG_HDR_DRV_STRAIGHT = "time,d_rem,enc_pos,power,angle_err,angle,rate,turn_power";
+    private final String LOG_HDR_TURN_IN_PLACE = "";
 
     public String logStr;
+
+    public static String mechanismName = "Not Set";
 
     public static final SendableChooser<Integer> chosenDataID = new SendableChooser<>();
 
@@ -64,7 +80,7 @@ public class DataCollection
     public static final int shift7 = 1 << 7;
 
 
-    public void updateLogDataID()
+    /*public void updateLogDataID()
     {
         if(chosenDataID.getSelected() == LOG_ID_NONE)
         {
@@ -76,7 +92,7 @@ public class DataCollection
         }
         setLogDataID(chosenDataID.getSelected());
 
-    }
+    }*/
 
     public void setLogDataID(final int dataID)
     {
@@ -87,7 +103,7 @@ public class DataCollection
     public void dataCollectionInit(final ArrayList<CatzLog> list)
     {   
         date = Calendar.getInstance().getTime();
-        sdf = new SimpleDateFormat("_yyyyMMdd_kkmmss");	
+        sdf = new SimpleDateFormat("yyyy-MM-dd kk.mm.ss");	
         dateFormatted = sdf.format(date);
 
         logData = list;
@@ -122,8 +138,15 @@ public class DataCollection
     public void dataCollectionShuffleboard()
     {
         chosenDataID.setDefaultOption("None",        LOG_ID_NONE);
-        chosenDataID.addOption("Swerve Module", LOG_ID_SWERVE_STEERING);
-        chosenDataID.addOption("Swerve Module", LOG_ID_SWERVE_DRIVING);
+        chosenDataID.addOption("Swerve Steering", LOG_ID_SWERVE_STEERING);
+        chosenDataID.addOption("Swerve Driving", LOG_ID_SWERVE_DRIVING);
+        chosenDataID.addOption("Balance Data",       LOG_ID_BALANCE);
+        chosenDataID.addOption("Intake", LOG_ID_INTAKE);
+        chosenDataID.addOption("Indexer", LOG_ID_INDEXER);
+        chosenDataID.addOption("Elevator", LOG_ID_ELEVATOR);
+        chosenDataID.addOption("Claw", LOG_ID_CLAW);
+        chosenDataID.addOption("Auton Drv Straight", LOG_ID_DRV_STRAIGHT);
+        chosenDataID.addOption("Auton Turn In Place", LOG_ID_TURN_IN_PLACE);
 
         SmartDashboard.putData("Data Collection", chosenDataID);
     }
@@ -166,8 +189,20 @@ public class DataCollection
                 break;
             case LOG_ID_SWERVE_DRIVING :    
                 break;
-
-
+            case LOG_ID_BALANCE: 
+                break;
+            case LOG_ID_INTAKE:
+                break;
+            case LOG_ID_INDEXER:
+                break;
+            case LOG_ID_ELEVATOR:
+                break;
+            case LOG_ID_CLAW:
+                break;
+            case LOG_ID_DRV_STRAIGHT:
+                break;
+            case LOG_ID_TURN_IN_PLACE:
+                break;
             default :
                 validLogID = false;
 
@@ -197,6 +232,27 @@ public class DataCollection
             case LOG_ID_SWERVE_DRIVING:
                 pw.printf(LOG_HDR_SWERVE_DRIVING);
                 break;
+            case LOG_ID_BALANCE:
+                pw.printf(LOG_HDR_BALANCE_MOD);
+            break;
+            case LOG_ID_INTAKE:
+                pw.printf(LOG_HDR_INTAKE);
+            break;
+            case LOG_ID_INDEXER:
+                pw.printf(LOG_HDR_INDEXER);
+            break;
+            case LOG_ID_ELEVATOR:
+                pw.printf(LOG_HDR_ELEVATOR);
+            break; 
+            case LOG_ID_CLAW:
+                pw.printf(LOG_HDR_CLAW);
+            break;
+            case LOG_ID_DRV_STRAIGHT:
+                pw.printf(LOG_HDR_DRV_STRAIGHT);
+            break;
+            case LOG_ID_TURN_IN_PLACE:
+                pw.printf(LOG_HDR_TURN_IN_PLACE);
+            break;
             default :
                 pw.printf("Invalid Log Data ID");            
 
@@ -207,7 +263,7 @@ public class DataCollection
     //create log file
     public String createFilePath()
     {
-	    String logDataFullFilePath = logDataFilePath + dateFormatted + logDataFileType;
+        String logDataFullFilePath = logDataFilePath + " " + setLogDataName() + " " + dateFormatted +  logDataFileType;
     	return logDataFullFilePath;
     }
 
@@ -240,5 +296,40 @@ public class DataCollection
     public static int getLogDataID()
     {
         return logDataID;
+    }
+
+    public static String setLogDataName()
+    {
+        switch(getLogDataID())
+        {
+            case(LOG_ID_SWERVE_STEERING):
+                mechanismName = "Swerve Steering Data";
+            break;
+            case(LOG_ID_SWERVE_DRIVING):
+                mechanismName = "Swerve Driving Data";
+            break; 
+            case(LOG_ID_BALANCE):
+                mechanismName = "Balancing Data";
+            break;
+            case(LOG_ID_INTAKE):
+                mechanismName = "Intake Data";
+            break;
+            case(LOG_ID_INDEXER):
+                mechanismName = "Indexer Data";
+            break;
+            case(LOG_ID_ELEVATOR):
+                mechanismName = "Elevator Data";
+            break;
+            case(LOG_ID_CLAW):
+                mechanismName = "Claw Data";
+            break;
+            case(LOG_ID_DRV_STRAIGHT):
+                mechanismName = "Auton Drv Straight Data";
+            break;
+            case(LOG_ID_TURN_IN_PLACE):
+                mechanismName = "Auton Turn In Place Data";
+            break;
+        }
+        return mechanismName;
     }
 }

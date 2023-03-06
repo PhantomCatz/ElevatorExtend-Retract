@@ -180,7 +180,7 @@ public class Robot extends TimedRobot {
     //For each mechanism - debug and comp
     SmartDashboard.putNumber("NavX", navX.getAngle());
     elevator.smartDashboardElevator();
-    elevator.getEncPuts();
+    elevator.smartDashboardElevator_DEBUG();
 
     //drivetrain.testAngle();
 
@@ -397,6 +397,19 @@ public class Robot extends TimedRobot {
 
       //go to HIGH scoring position
     }
+    else if(xboxAux.getXButton())
+    {
+      if(intakeState == DEPLOYED)
+      {
+        //stow intake
+        intakeState = STOWED;
+      }
+      // elevator.spoolTopScorePos();
+      // elevator.elevatorPivotHighScoringPosition();
+      elevator.elevatorStow();
+
+      //go to HIGH scoring position
+    }
 
 
     //----------------------------------------------------------------------------------------------
@@ -415,14 +428,14 @@ public class Robot extends TimedRobot {
         //stow intake
         intakeState = STOWED;
       }
-      elevator.manualPivotControl(0.3);
+      elevator.manualPivotControl(-0.1);
       //while pressed, deploy elevator
     
     }
     else if(xboxAux.getPOV() == DPAD_DN)
     {
       //while pressed, pivot elevator
-      elevator.manualPivotControl(-0.3);
+      elevator.manualPivotControl(0.1);
     }
     else
     {

@@ -19,7 +19,7 @@ public class CatzLog
     public double robotData14;
     public int robotData15;
     
-    public int robotDataType;
+    //public int robotDataType;
 
 
     public CatzLog(double time, 

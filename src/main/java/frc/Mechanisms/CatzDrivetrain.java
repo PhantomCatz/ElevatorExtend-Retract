@@ -1,15 +1,9 @@
 package frc.Mechanisms;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.DataLogger.CatzLog;
 import frc.DataLogger.DataCollection;
 import frc.robot.Robot;
-
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
-import javax.xml.crypto.Data;
-
-import com.kauailabs.navx.frc.AHRS;
-
 
 public class CatzDrivetrain 
 {
@@ -17,8 +11,6 @@ public class CatzDrivetrain
     private final CatzSwerveModule RT_BACK_MODULE;
     private final CatzSwerveModule LT_FRNT_MODULE;
     private final CatzSwerveModule LT_BACK_MODULE;
-
-    private final double notFieldRelative = 0.0;
 
     private final int LT_FRNT_DRIVE_ID = 1;
     private final int LT_BACK_DRIVE_ID = 3;
@@ -35,10 +27,17 @@ public class CatzDrivetrain
     private final int RT_BACK_ENC_PORT = 7;
     private final int RT_FRNT_ENC_PORT = 8;
 
-    private final double LT_FRNT_OFFSET = 0.0055;
-    private final double LT_BACK_OFFSET = 0.3592;
-    private final double RT_BACK_OFFSET = 0.0668;
-    private final double RT_FRNT_OFFSET = 0.6513;
+    private final double LT_FRNT_OFFSET =  0.01484; 
+    private final double LT_BACK_OFFSET =  0.22205; 
+    private final double RT_BACK_OFFSET =  0.2550; 
+    private final double RT_FRNT_OFFSET = -0.1650; 
+
+    private final double NOT_FIELD_RELATIVE = 0.0;
+
+    private double steerAngle = 0.0;
+    private double drivePower = 0.0;
+    private double turnPower  = 0.0;
+    private double gyroAngle  = 0.0;
     
     //Data collection
     public CatzLog data;
@@ -60,14 +59,47 @@ public class CatzDrivetrain
         RT_BACK_MODULE.resetMagEnc();
     }
 
-    public void initializeOffsets(AHRS navX)
+    public void initializeOffsets()
     {
-        navX.setAngleAdjustment(-navX.getYaw());
+        Robot.navX.setAngleAdjustment(-Robot.navX.getYaw());
 
         LT_FRNT_MODULE.initializeOffset();
         LT_BACK_MODULE.initializeOffset();
         RT_FRNT_MODULE.initializeOffset();
         RT_BACK_MODULE.initializeOffset();
+    }
+
+    public void cmdProcSwerve(double leftJoyX, double leftJoyY, double rightJoyX, double navXAngle)
+    {
+        steerAngle = calcJoystickAngle(leftJoyX, leftJoyY);
+        drivePower = calcJoystickPower(leftJoyX, leftJoyY);
+        turnPower  = rightJoyX;
+        gyroAngle  = navXAngle;
+
+        if(drivePower >= 0.1)
+        {
+            if(Math.abs(turnPower) >= 0.1)
+            {
+                translateTurn(steerAngle, drivePower, turnPower, gyroAngle);
+            }
+            else
+            {
+                drive(steerAngle, drivePower, gyroAngle);
+            }
+
+            dataCollection();
+        }
+        else if(Math.abs(turnPower) >= 0.1)
+        {
+            rotateInPlace(turnPower);
+            
+            dataCollection();
+        }
+        else
+        {
+            setSteerPower(0.0);
+            setDrivePower(0.0);
+        }
     }
 
     public void drive(double joystickAngle, double joystickPower, double gyroAngle)
@@ -84,10 +116,10 @@ public class CatzDrivetrain
 
     public void rotateInPlace(double pwr)
     {
-        LT_FRNT_MODULE.setWheelAngle(-45.0, notFieldRelative);
-        LT_BACK_MODULE.setWheelAngle(45.0, notFieldRelative);
-        RT_FRNT_MODULE.setWheelAngle(-135.0, notFieldRelative);
-        RT_BACK_MODULE.setWheelAngle(135.0, notFieldRelative);
+        LT_FRNT_MODULE.setWheelAngle(-45.0, NOT_FIELD_RELATIVE);
+        LT_BACK_MODULE.setWheelAngle(45.0, NOT_FIELD_RELATIVE);
+        RT_FRNT_MODULE.setWheelAngle(-135.0, NOT_FIELD_RELATIVE);
+        RT_BACK_MODULE.setWheelAngle(135.0, NOT_FIELD_RELATIVE);
 
         LT_FRNT_MODULE.setDrivePower(pwr);
         LT_BACK_MODULE.setDrivePower(pwr);
@@ -141,12 +173,13 @@ public class CatzDrivetrain
             LT_BACK_MODULE.setWheelAngle(joystickAngle - turnAngle, gyroAngle);
         }
 
-
         LT_FRNT_MODULE.setDrivePower(translatePower);
         LT_BACK_MODULE.setDrivePower(translatePower);
         RT_FRNT_MODULE.setDrivePower(translatePower);
         RT_BACK_MODULE.setDrivePower(translatePower);
     }
+
+
 
     public double closestAngle(double startAngle, double targetAngle)
     {
@@ -226,5 +259,78 @@ public class CatzDrivetrain
         LT_BACK_MODULE.updateShuffleboard();
         RT_FRNT_MODULE.updateShuffleboard();
         RT_BACK_MODULE.updateShuffleboard();
+
+        SmartDashboard.putNumber("Joystick", steerAngle);
+    }
+
+    /*
+     * Auto Balance stuff
+     */
+
+     public double getAveragePosition(){
+        return (LT_FRNT_MODULE.getDriveMotorPosition() + LT_BACK_MODULE.getDriveMotorPosition() + RT_FRNT_MODULE.getDriveMotorPosition() + RT_BACK_MODULE.getDriveMotorPosition()) / 4.0;
+    }
+
+    public void reverseAllDrive(Boolean reverse){
+        LT_FRNT_MODULE.reverseDrive(reverse);
+        LT_BACK_MODULE.reverseDrive(reverse);
+        RT_FRNT_MODULE.reverseDrive(reverse);
+        RT_BACK_MODULE.reverseDrive(reverse);
+    }
+
+    public void zeroGyro()
+    {
+        Robot.navX.setAngleAdjustment(-Robot.navX.getYaw());
+    }
+
+    public double getGyroAngle()
+    {
+        return Robot.navX.getAngle();
+    }
+
+    public void autoDrive(double power)
+    {
+        LT_FRNT_MODULE.setWheelAngle(0, 0);
+        LT_BACK_MODULE.setWheelAngle(0, 0);
+        RT_FRNT_MODULE.setWheelAngle(0, 0);
+        RT_BACK_MODULE.setWheelAngle(0, 0);
+
+        setDrivePower(power);
+    }
+
+
+    public double calcJoystickAngle(double xJoy, double yJoy)
+    {
+        double angle = Math.atan(Math.abs(xJoy) / Math.abs(yJoy));
+        angle *= (180 / Math.PI);
+
+        if(yJoy <= 0)   //joystick pointed up
+        {
+            if(xJoy < 0)    //joystick pointed left
+            {
+              //no change
+            }
+            if(xJoy >= 0)   //joystick pointed right
+            {
+              angle = -angle;
+            }
+        }
+        else    //joystick pointed down
+        {
+            if(xJoy < 0)    //joystick pointed left
+            {
+              angle = 180 - angle;
+            }
+            if(xJoy >= 0)   //joystick pointed right
+            {
+              angle = -180 + angle;
+            }
+        }
+      return angle;
+    }
+
+    public double calcJoystickPower(double xJoy, double yJoy)
+    {
+      return (Math.sqrt(Math.pow(xJoy, 2) + Math.pow(yJoy, 2)));
     }
 }
