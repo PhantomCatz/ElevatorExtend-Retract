@@ -410,6 +410,7 @@ public class Robot extends TimedRobot {
 
       //go to HIGH scoring position
     }
+    
 
 
     //----------------------------------------------------------------------------------------------
@@ -428,7 +429,7 @@ public class Robot extends TimedRobot {
         //stow intake
         intakeState = STOWED;
       }
-      elevator.manualPivotControl(-0.1);
+      elevator.manualPivotControl(-0.2);
       //while pressed, deploy elevator
     
     }
