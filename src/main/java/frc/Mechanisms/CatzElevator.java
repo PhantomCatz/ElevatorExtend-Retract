@@ -37,6 +37,8 @@ public class CatzElevator {
     private final static int ELEVATOR_STATE_ELEVATOR_SCORE_MID = 2;
     private final static int ELEVATOR_STATE_ELEVATOR_SCORE_LOW = 3;
     private final static int ELEVATOR_STATE_ELEVATOR_STOW      = 4;
+
+    public CatzLog data;
     
     /*----------------------------------------------------------------------------------------------
     * 
@@ -175,10 +177,10 @@ public class CatzElevator {
     private final double ELEVATOR_SPOOL_DIAMETER      = 1.25;
     private final double ELEVATOR_SPOOL_CIRCUMFERENCE = Math.PI * ELEVATOR_SPOOL_DIAMETER;
 
-    private final double ELEVATOR_SPOOL_INCHES_PER_CNT =  (30.0 / 12.0) * ELEVATOR_SPOOL_CIRCUMFERENCE /NEO_CNTS_PER_REVOLUTION;//(ELEV_SPOOL_FINAL_RATIO / NEO_CNTS_PER_REVOLUTION) * ELEVATOR_SPOOL_CIRCUMFERENCE;
+    private final double ELEVATOR_SPOOL_INCHES_PER_CNT =  (30.0 / 12.0) * ELEVATOR_SPOOL_CIRCUMFERENCE / NEO_CNTS_PER_REVOLUTION;//(ELEV_SPOOL_FINAL_RATIO / NEO_CNTS_PER_REVOLUTION) * ELEVATOR_SPOOL_CIRCUMFERENCE; //
 
     private SparkMaxPIDController elevatorSpoolPid;
-    private final double PID_ELEVATOR_SPOOL_KP = 0.0;//1.25;//TBD
+    private final double PID_ELEVATOR_SPOOL_KP = 0.075;//1.25;//TBD
     private final double PID_ELEVATOR_SPOOL_KI = 0.00;
     private final double PID_ELEVATOR_SPOOL_KD = 0.00;
 
@@ -192,8 +194,8 @@ public class CatzElevator {
 
     private final double ELEVATOR_SPOOL_SCORE_TOP_POS = 74.0;   // Inches
     private final double ELEVATOR_SPOOL_SCORE_MID_POS = 50.0;   // Inches
-    private final double ELEVATOR_SPOOL_SCORE_LOW_POS = 26.0;   // Inches
-    private final double ELEVATOR_SPOOL_STOWED_POS    = 40.0;   // Inches
+    private final double ELEVATOR_SPOOL_SCORE_LOW_POS = 0.0;   // Inches
+    private final double ELEVATOR_SPOOL_STOWED_POS    = 10.0;   // Inches
 
 
 
@@ -314,7 +316,7 @@ public class CatzElevator {
                 switch (elevatorState)
                 {
                     case ELEVATOR_STATE_IDLE:
-                        //System.out.println("State Idle");
+                        System.out.println("State Idle");
                     break;
 
                     case ELEVATOR_STATE_ELEVATOR_SCORE_TOP:
@@ -322,28 +324,28 @@ public class CatzElevator {
                         elevatorPivotDone = false;
                         System.out.println("State TOP");
 
-                        // if(elevatorSpoolDone == false)
-                        // {
-                        //     elevatorSpoolPid.setReference(ELEVATOR_SPOOL_SCORE_TOP_POS, CANSparkMax.ControlType.kPosition);
-                        //     System.out.println("spool top state");
-                        //     if(elevatorLimitSwitchScoringTop.isPressed())
-                        //     {
-                        //         elevatorSpoolDone = true;
-                        //     }
-                        // }
-                        if(elevatorPivotDone == false)
+                        if(elevatorSpoolDone == false)
                         {
-                            elevatorPivotHighScoringPosition();
-                            elevatorPivotDone = true;
+                            elevatorSpoolPid.setReference(ELEVATOR_SPOOL_SCORE_TOP_POS, CANSparkMax.ControlType.kPosition);
+                            System.out.println("spool top state");
+                            if(elevatorLimitSwitchScoringTop.isPressed())
+                            {
+                                elevatorSpoolDone = true;
+                            }
                         }
+                        // if(elevatorPivotDone == false)
+                        // {
+                        //     elevatorPivotHighScoringPosition();
+                        //     elevatorPivotDone = true;
+                        // }
 
                         elevatorState = ELEVATOR_STATE_IDLE;
                     break;
 
                     case ELEVATOR_STATE_ELEVATOR_SCORE_MID:
                     System.out.println("State MID");
-                        //elevatorSpoolPid.setReference(ELEVATOR_SPOOL_SCORE_MID_POS, CANSparkMax.ControlType.kPosition);
-                        elevatorPivotMidScoringPosition();
+                        elevatorSpoolPid.setReference(ELEVATOR_SPOOL_SCORE_MID_POS, CANSparkMax.ControlType.kPosition);
+                        // elevatorPivotMidScoringPosition();
 
                         elevatorState = ELEVATOR_STATE_IDLE;
                     break;
@@ -353,34 +355,34 @@ public class CatzElevator {
                         elevatorSpoolDone = false;
                         elevatorPivotDone = false;
 
-                        // if(elevatorSpoolDone == false)
-                        // {
-                        //     elevatorSpoolPid.setReference(ELEVATOR_SPOOL_SCORE_LOW_POS, CANSparkMax.ControlType.kPosition);
-                            
-                        //     if(elevatorLimitSwitchResetBottom.isPressed() || elevatorCarriagePosInch <= ELEVATOR_SPOOL_BOT_MAX_RANGE )
-                        //     {
-                        //         if(elevatorLimitSwitchResetBottom.isPressed())
-                        //         {
-                        //             elevatorSpoolEncoder.setPosition(0.0);
-
-                        //         }
-                        //         elevatorSpoolDone = true;
-                        //     }
-                        // }
-                        if(elevatorPivotDone == false)
+                        if(elevatorSpoolDone == false)
                         {
-                            elevatorPivotLowScoringPosition();
-                            elevatorPivotDone = true;
+                            elevatorSpoolPid.setReference(ELEVATOR_SPOOL_SCORE_LOW_POS, CANSparkMax.ControlType.kPosition);
+                            
+                            if(elevatorLimitSwitchResetBottom.isPressed() || elevatorCarriagePosInch <= ELEVATOR_SPOOL_BOT_MAX_RANGE )
+                            {
+                                if(elevatorLimitSwitchResetBottom.isPressed())
+                                {
+                                    elevatorSpoolEncoder.setPosition(0.0);
+
+                                }
+                                elevatorSpoolDone = true;
+                            }
                         }
+                        // if(elevatorPivotDone == false)
+                        // {
+                        //     elevatorPivotLowScoringPosition();
+                        //     elevatorPivotDone = true;
+                        // }
                          
                         elevatorState = ELEVATOR_STATE_IDLE;
                     break;
 
                     case ELEVATOR_STATE_ELEVATOR_STOW:
                     System.out.println("State STOW");
-                        //elevatorSpoolPid.setReference(ELEVATOR_SPOOL_STOWED_POS, CANSparkMax.ControlType.kPosition);
+                        elevatorSpoolPid.setReference(ELEVATOR_SPOOL_STOWED_POS, CANSparkMax.ControlType.kPosition);
                         
-                            elevatorPivotStowedPosition();
+                            //elevatorPivotStowedPosition();
                         
                        
 
@@ -699,5 +701,18 @@ public class CatzElevator {
         SmartDashboard.putNumber("EncRawValue PIVOT", pivotAbsoluteEnc.getAbsolutePosition());
         SmartDashboard.putNumber("SelectedSensorPositionPIVOT", elevatorPivotMtrLT.getSelectedSensorPosition());
 
+    }
+
+    public void dataCollection()
+    {
+        if(DataCollection.chosenDataID.getSelected() == DataCollection.LOG_ID_ELEVATOR)
+        {
+            data = new CatzLog(Robot.currentTime.get(), elevatorCarriagePosInch, 
+                            rawAbsEncCountValue, updatePivotCurrentAngle(), 
+                            pivotAbsoluteEnc.getAbsolutePosition(), elevatorPivotMtrLT.getClosedLoopError(),
+                            -999.9, -999.9, -999.9, -999.9, -999.9,
+                            -999.9, -999.9, -999.9, -999.9, DataCollection.boolData);  
+            Robot.dataCollection.logData.add(data);
+        }
     }
 }

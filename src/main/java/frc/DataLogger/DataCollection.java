@@ -57,7 +57,7 @@ public class DataCollection
     private final String LOG_HDR_BALANCE_MOD = "time,pitch,rate,power,pitchTerm,rateTerm,";
     private final String LOG_HDR_INTAKE = "time,tar-ang-rt,tar-ang,fin-mtr-pwr,mtr-pwr,curr-ang,dt-ang,dt-time";
     private final String LOG_HDR_INDEXER = "";
-    private final String LOG_HDR_ELEVATOR = "";
+    private final String LOG_HDR_ELEVATOR = "time,cur-spl-in,cur-piv-cnt,cur-piv-ang,piv-raw-val,piv-err";
     private final String LOG_HDR_CLAW = "";
     private final String LOG_HDR_DRV_STRAIGHT = "time,d_rem,enc_pos,power,angle_err,angle,rate,turn_power";
     private final String LOG_HDR_TURN_IN_PLACE = "";
